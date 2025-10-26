@@ -1,8 +1,3 @@
----
-title: "CODAP Data Generator"
-output: html_document
----
-
 # CODAP Data Generator
 
 Dieses Repository enthält R-Skripte zur Aufbereitung und Bereinigung von Datensätzen für die Plattform https://codap.concord.org/.  
