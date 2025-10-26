@@ -1,0 +1,21 @@
+# R
+.Rhistory
+.RData
+.Rproj.user/
+.Ruserdata
+
+# renv lokale Bibliotheken
+renv/library/
+
+# Output-Daten
+data_clean/
+data_temp/
+
+# Betriebssystem
+.DS_Store
+Thumbs.db
+
+# Sonstiges
+*.tmp
+*.bak
+
