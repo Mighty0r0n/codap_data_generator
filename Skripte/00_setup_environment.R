@@ -1,9 +1,9 @@
-############################################################
-# Script: 00_setup_environment.R
-# Zweck:
-#   - Projektumgebung aktivieren und benötigte Pakete laden
-#   - R-Version dokumentieren und prüfen
-############################################################
+#########################################################################
+# Dieses Skript dient zur Reproduzierbarkeit der Datensatazerstellung
+# - Ausführen bei erstmaliger einrichtung dieses Repositorys!
+# - Es wird R-Version überprüft und im Anschluss alle benötigten
+#   Zusatzpackete runtergeladen.
+#########################################################################
 
 required_r_version <- "4.5.1"
 cat("Aktuelle R-Version:", as.character(getRversion()), "\n")
