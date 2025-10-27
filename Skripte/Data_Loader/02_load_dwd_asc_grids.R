@@ -5,6 +5,12 @@
 # Um alle Daten auf einmal zu laden, bitte 00_load_all verwenden.
 ##############################################################################
 
+# Zuerst alle benötigten Pakete laden.
+suppressPackageStartupMessages({
+  library(httr)      # HTTP Requests
+  library(stringr)   # Regex / Link-Suche
+  library(fs)        # Pfad-Handling
+})
 
 ##############################################################################
 # 1. Vorbereitung
@@ -19,14 +25,7 @@
 # sie manipulieren ohne es zu merken. Deshalb bekommt jede Variable mithilfe dieser
 # Funktion einen separaten Namespace um die "uniqueness" der Variable zu gewährleisten.
 download_dwd_grids <- function() {
-  # Zuerst alle benötigten Pakete laden.
-  suppressPackageStartupMessages({
-    library(httr)      # HTTP Requests
-    library(stringr)   # Regex / Link-Suche
-    library(fs)        # Pfad-Handling
-  })
-  
-  
+
   # Der Ordner raw_data ist der Sammelort für alle Datensätze.
   out_dir <- "raw_data"
   dir_create(out_dir)

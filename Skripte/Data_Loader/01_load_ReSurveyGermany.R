@@ -3,6 +3,12 @@
 # Um alle Daten auf einmal zu laden, bitte 00_load_all verwenden.
 ##############################################################################
 
+# Zuerst alle benötigten Pakete laden.
+suppressPackageStartupMessages({
+  library(httr)      # HTTP-Requests
+  library(stringr)   # Regex für Link-Suche
+  library(fs)        # Pfad-Handling
+})
 
 ##############################################################################
 # 1. Alles für das runterladen der Daten vorbereiten.
@@ -16,14 +22,7 @@
 # sie manipulieren ohne es zu merken. Deshalb bekommt jede Variable mithilfe dieser
 # Funktion einen separaten Namespace um die "uniqueness" der Variable zu gewährleisten.
 download_resurvey_germany <- function() {
-  suppressPackageStartupMessages({
-    library(httr)      # HTTP-Requests
-    library(stringr)   # Regex für Link-Suche
-    library(fs)        # Pfad-Handling
-  })
-  
-  
-  
+
   # Ordner raw_data als Sammelort für alle Datensätze
   out_dir <- "raw_data"
   dir_create(out_dir)
