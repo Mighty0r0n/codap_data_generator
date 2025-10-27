@@ -99,6 +99,9 @@ download_fish_occurrences <- function() {
   
   # Occurrence.txt ist eigentlich schon das, allerdings als tab-separeted-values
   # ; und , werden bereits in einzelnen metafeldern als subtrenner benutzt.
+  # Unten wird nochmal schnell überprüft ob die Datei auch wirklich runtergeladen
+  # worden ist. Zusätzlich wird nochmal ausgegeben wieviele Daten da jetzt wirklich
+  # runter geladen worden sind.
   if (file_exists(occurrence_file)) {
     occ <- fread(occurrence_file)
     cat("occ Dimension:\n")
