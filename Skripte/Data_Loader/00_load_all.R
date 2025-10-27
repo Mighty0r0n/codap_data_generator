@@ -15,7 +15,8 @@ source("Skripte/Data_Loader/01_load_ReSurveyGermany.R")
 # # ---- 2. DWD Daten download Funktion initialisieren ----
 source("Skripte/Data_Loader/02_load_dwd_asc_grids.R")
 
-
+# # ---- 3. Fisch Abundanzdaten download Funktion initialisieren  ----
+source("Skripte/Data_Loader/03_load_fish_occurrences.R")
 
 
 # Hier werden die eigentlichen Funktionen zum Laden der Dateien aufgerufen.
