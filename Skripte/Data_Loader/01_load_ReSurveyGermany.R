@@ -165,7 +165,6 @@ download_resurvey_germany <- function() {
   
   message("[DONE] Download und Entpacken abgeschlossen.")
   
-  # Rückgabe (damit der Aufrufer weiß, wo die Daten liegen)
   invisible(TRUE)
 }
 
