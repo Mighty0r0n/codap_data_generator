@@ -1,3 +1,8 @@
+# Eine .gitignore wird benutzt um gewisse Dateien oder Datengruppen aus dem Repo
+# zu excludieren. Dies wird gemacht um zu vermeiden das zu große Dateien in die Repositorys
+# gepushed werden. Erzeugt Datenmüll.
+
+
 # R
 .Rhistory
 .RData
@@ -22,4 +27,11 @@ Thumbs.db
 # Hilfsdateien
 *.html
 
+
+# Datensätze -> Diese sollen über den Dataloader geladen werden um das Repo klein und übersichtlich zu halten.
+*.csv
+*.pdf
+*.asc
+*.zip
+*.gz
 
