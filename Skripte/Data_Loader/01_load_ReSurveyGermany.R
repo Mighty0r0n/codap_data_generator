@@ -128,40 +128,28 @@ download_resurvey_germany <- function() {
   
   # Hier wird wieder der Inhalt der .zip angeschaut und zurückgegeben. 
   inner_content <- utils::unzip(re_survey_inner_zip, list = TRUE)
-  
-  # Datei "ReSurveyGermany.csv" finden
-  csv_file <- inner_content$Name[
-    grepl("(^|/|\\\\)ReSurveyGermany\\.csv$", inner_content$Name)
+  # Dateien "ReSurveyGermany.csv" und "header_ReSurveyGermany.csv" finden
+  csv_files <- inner_content$Name[
+    grepl("(?:^|/|\\\\)(Header_)?ReSurveyGermany\\.csv$", inner_content$Name)
   ]
   
-  if (length(csv_file) == 0) {
+  
+  if (length(csv_files) == 0) {
     stop("Datei 'ReSurveyGermany.csv' wurde in ReSurveyGermany.zip nicht gefunden.")
   }
   
-  message("[INFO] Extrahiere nur: ", csv_file)
+  message("[INFO] Extrahiere nur: ", csv_files)
   
   # Nun wird der Datensatz ReSurveyGermany.csv extrahiert und im
   # vorgesehenen Ordner abgelegt
   utils::unzip(
     zipfile = re_survey_inner_zip,
-    files   = csv_file,
+    files   = csv_files,
     exdir   = re_survey_extract_dir
   )
   
   message("[OK] ReSurveyGermany.csv extrahiert nach: ", path_abs(re_survey_extract_dir))
-  message("[DONE] Alles abgeschlossen 🎉")
-  
-  
-  ############################################################
-  # 5. Optional: CSV-Dateien einlesen
-  ############################################################
-  # Wenn du die entpackten CSVs direkt einlesen willst,
-  # kannst du sie hier laden (z. B. Hauptdatei ReSurveyGermany.csv)
-  
-  # Beispiel:
-  re_survey_path <- path(re_survey_extract_dir, "ReSurveyGermany.csv")
-  re_survey_data <- readr::read_csv(re_survey_path)
-  cat("[OK] Daten erfolgreich eingelesen. Zeilen:", nrow(re_survey_data), "\n")
+
   
   message("[DONE] Download und Entpacken abgeschlossen.")
   
