@@ -1,6 +1,6 @@
 ##############################################################################
-# Dieses Skript soll einmalig alle benötigten Daten für dieses Projekt 
-# einmalig runterladen.
+# Dieses Skript lädt die Daten zu ReSurveyGermany separat runter.
+# Um alle Daten auf einmal zu laden, bitte 00_load_all verwenden.
 ##############################################################################
 
 
@@ -110,6 +110,9 @@ utils::unzip(
   exdir   = re_survey_extract_dir
 )
 
+# Hier speichern wir nun den Pfad zur inneren .zip um diese gleich separat
+# entpacken zu können
+re_survey_inner_zip <- path(re_survey_extract_dir, "ReSurveyGermany.zip")
 
 message("[OK] ReSurveyGermany.zip extrahiert nach: ", path_abs(re_survey_inner_zip))
 
@@ -117,9 +120,7 @@ message("[OK] ReSurveyGermany.zip extrahiert nach: ", path_abs(re_survey_inner_z
 # 5. Aus ReSurveyGermany.zip nur die CSV extrahieren
 ############################################################
 
-# Hier speichern wir nun den Pfad zur inneren .zip um diese gleich separat
-# entpacken zu können
-re_survey_inner_zip <- path(re_survey_extract_dir, "ReSurveyGermany.zip")
+
 
 # Hier wird wieder der Inhalt der .zip angeschaut und zurückgegeben. 
 inner_content <- utils::unzip(re_survey_inner_zip, list = TRUE)
