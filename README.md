@@ -15,8 +15,10 @@ Das Projekt wurde mit RStudio entwickelt und nutzt `renv` für reproduzierbare U
 Linux/Max:
 Das Repo wurde unter Windows entwickelt. Falls dieses Repo unter Linux/MacOS
 gestartet wird, kann es sein, dass das R-package terra einen Fehler wirft.
-`sudo apt-get install libgdal-dev libgeos-dev libproj-dev libtbb-dev libnetcdf-dev` sollte
-diesen Fehler laut dem [Installationshandbuch](https://rspatial.github.io/terra/) lösen. (https://rspatial.github.io/terra/)
+```bash
+sudo apt-get install libgdal-dev libgeos-dev libproj-dev libtbb-dev libnetcdf-dev
+```
+solltediesen Fehler laut dem [Installationshandbuch](https://rspatial.github.io/terra/) lösen.
 
 ## Installation und Setup
 
