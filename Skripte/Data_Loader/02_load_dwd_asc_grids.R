@@ -108,7 +108,7 @@ download_dwd_grids <- function() {
     # Wir prüfen, dass die Jahreszahl direkt vor der Endung steht.
     asc_gz_files <- hrefs[
       grepl("\\.asc\\.gz$", hrefs, ignore.case = TRUE) &
-        grepl("_(20[0-9]{2})", hrefs)  # matcht 2000-2099
+        grepl("_(20[0-9]{2})", hrefs)  # matcht 2000-2099, naiv implementiert. Man könnte in regex bestimmt irgendwie genau 2000-2024 angeben
     ]
     
     # PDF Dateien (Metadaten/Dokumentation)
