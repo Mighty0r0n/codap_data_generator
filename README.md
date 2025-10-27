@@ -42,24 +42,53 @@ Die globale R-Installation wird dabei nicht verändert.
 
 
 
+### 4. Rohdaten herunterladen
+
+Im Ordner `Skripte/Data_Loader/` sind R-Skripte enthalten zum laden der Rohdaten.
+Das Skript `00_load_all.R` lädt hierbei alle verwendeten Datensätze herunter.
+Skripte nummeriert ab `01` dienen zum herunterladen der separaten verwendeten Datensätze
+
+
+
+### 5. Datensätze erstellen
+
+Im Ordner `Skripte/` können nun die Skripte beginnend mit `Datensatz_*` ausgeführt werden um
+die entsprechenden Datensätze nun zu generieren.
+
+
+
 ### Projektstruktur
 
 ```text
 codap_data_cleaner/
-├─ data_raw/                                     # Eingangsdatensätze
-│   └─ arten_umwelt_modellierung/
-├─ result_data/                                  # Ordner für die Finalen Datensätze
-├─ tmp_data/                                     # Ordner für eventuelle tempörare Dateien
-├─ Skripte/
-│   ├─ 00_setup_environment.R                    # Init des Repos
-│   ├─ 01_load_data.R                            # IN PLANUNG
-│   ├─ Datensatz_Pflanzenarten_Umweltfaktoren.R  # Skript für Datensatz für Pflanzenarten und Umweltfaktoren 
+├─ raw_data/                                     # Eingangsdatensätze (Rohdaten)
+│   ├─ ReSurveyGermany/                          # heruntergeladener iDiv-Datensatz (ID 3514)
+│   ├─ air_temperature_mean/                     # DWD Rasterdaten: mittlere Lufttemperatur (ASC)
+│   └─ precipitation/                            # DWD Rasterdaten: Niederschlag (ASC)
+│
+├─ result_data/                                  # Endgültig bereinigte und zusammengeführte Datensätze
 │   └─ ...
+│
+├─ tmp_data/                                     # Zwischenstände oder temporäre Dateien
+│   └─ ...
+│
+├─ Skripte/                                      # Alle R-Skripte für das Projekt
+│   ├─ Data_Loader/                              # Unterordner für alle Download- und Ladeskripte
+│   │   ├─ 00_load_all.R                         # führt alle Data-Loader-Skripte sequentiell aus
+│   │   ├─ 01_load_ReSurveyGermany.R             # lädt ReSurveyGermany-Daten (ID 3514)
+│   │   ├─ 02_download_dwd_asc_grids.R           # lädt DWD-Jahresraster (air_temperature_mean & precipitation)
+│   │   └─ ...                                   # ggf. weitere Quellen (z. B. Boden, Vegetation, etc.)
+│   │
+│   ├─ Datensatz_Pflanzenarten_Umweltfaktoren.R  # Haupt-Skript zur Zusammenstellung des kombinierten Datensatzes
+│   └─ ...                                       # weitere Analyse- oder Verarbeitungs-Skripte
+│
 ├─ renv/                                         # Lokale renv-Library (nicht versioniert)
-├─ renv.lock                                     # Paket-Snapshot (wird versioniert)
-├─ .Rprofile
-├─ .gitignore                                    
-└─ README.md                                      
+│
+├─ renv.lock                                     # Paket-Snapshot für reproduzierbare Umgebung
+├─ .Rprofile                                     # startet automatisch renv beim Öffnen
+├─ .gitignore                                    # enthält renv/, tmp_data/, ggf. .Rhistory etc.
+└─ README.md                                     # Projektbeschreibung & Reproduktionshinweise
+                                    
 ```
 
 
