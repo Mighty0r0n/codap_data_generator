@@ -26,6 +26,8 @@ Thumbs.db
 
 # Hilfsdateien
 *.html
+*.xml
+*.txt
 
 
 # Datensätze -> Diese sollen über den Dataloader geladen werden um das Repo klein und übersichtlich zu halten.
