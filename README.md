@@ -27,12 +27,12 @@ solltediesen Fehler laut dem [Installationshandbuch](https://rspatial.github.io/
 Im Terminal oder in RStudio:
 
 ```bash
-git clone https://github.com/DEINNAME/codap_data_cleaner.git
+git clone https://github.com/DEINNAME/codap_data_generator.git
 ```
 
 ### 2. R-Projekt öffnen
 
-Öffne die Datei `codap_data_cleaner.Rproj` in RStudio.
+Öffne die Datei `codap_data_generator.Rproj` in RStudio.
 Alle Pfade im Projekt sind relativ und basieren auf `here::here()`.
 
 
@@ -69,7 +69,7 @@ die entsprechenden Datensätze nun zu generieren.
 ### Projektstruktur
 
 ```text
-codap_data_cleaner/
+codap_data_generator/
 ├─ raw_data/                                     # Eingangsdatensätze (Rohdaten)
 │   ├─ ReSurveyGermany/                          # heruntergeladener iDiv-Datensatz (ID 3514)
 │   ├─ air_temperature_mean/                     # DWD Rasterdaten: mittlere Lufttemperatur (ASC)
