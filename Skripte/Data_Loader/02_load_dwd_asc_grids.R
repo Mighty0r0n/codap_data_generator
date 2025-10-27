@@ -25,6 +25,37 @@ suppressPackageStartupMessages({
 # sie manipulieren ohne es zu merken. Deshalb bekommt jede Variable mithilfe dieser
 # Funktion einen separaten Namespace um die "uniqueness" der Variable zu gewährleisten.
 download_dwd_grids <- function() {
+  
+  # Hilfsfunktion: erkennt Dateityp (.gz vs .zip) und entpackt passend
+  extract_compressed_file <- function(input_path) {
+    # Lies die ersten 2 Bytes, um den Typ zu erkennen
+    header_bytes <- readBin(input_path, what = "raw", n = 2)
+    
+    is_zip <- identical(header_bytes, as.raw(c(0x50, 0x4b))) # "PK"
+    is_gz  <- identical(header_bytes, as.raw(c(0x1f, 0x8b))) # gzip
+    
+    # Zielpfad ohne .gz (oder .zip, falls falsch benannt)
+    # Beispiel: "foo.asc.gz" -> "foo.asc"
+    output_path <- sub("\\.gz$", "", input_path, ignore.case = TRUE)
+    output_path <- sub("\\.zip$", "", output_path, ignore.case = TRUE)
+    
+    if (is_gz) {
+      message("    -> Detektiert: gzip")
+      R.utils::gunzip(input_path, remove = TRUE, overwrite = TRUE)
+      return(invisible(output_path))
+    }
+    
+    if (is_zip) {
+      message("    -> Detektiert: zip")
+      # entpacke ZIP in dasselbe Verzeichnis
+      utils::unzip(input_path, exdir = dirname(input_path))
+      file_delete(input_path)
+      return(invisible(output_path))
+    }
+    
+    warning("    -> Unbekanntes Format, nichts entpackt: ", basename(input_path))
+    invisible(NULL)
+  }
 
   # Der Ordner raw_data ist der Sammelort für alle Datensätze.
   out_dir <- "raw_data"
@@ -106,7 +137,8 @@ download_dwd_grids <- function() {
       
       # ---- Nach Download: Entpacken und .gz file löschen ----
       message("  [UNZIP] ", basename(gz_path))
-      R.utils::gunzip(gz_path, remove = TRUE, overwrite = TRUE)
+      extract_compressed_file(gz_path)
+     #R.utils::gunzip(gz_path, remove = TRUE, overwrite = TRUE)
       message("  [OK] Entpackt und gelöscht: ", basename(asc_path))
     }
     
