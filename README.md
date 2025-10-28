@@ -14,7 +14,7 @@ Das Projekt wurde mit RStudio entwickelt und nutzt `renv` für reproduzierbare U
 - **`main`** – stabiler und getesteter Code, geeignet für Reproduktion und Nutzung  
 - **`dev`** – Entwicklungszweig mit Work-in-Progress-Skripten
 
----
+# ---
 
 ## Voraussetzungen
 
