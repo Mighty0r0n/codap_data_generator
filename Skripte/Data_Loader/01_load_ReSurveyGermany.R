@@ -20,7 +20,7 @@ suppressPackageStartupMessages({
 # gespeichert. Haben 2 Skripte nun die selben Variablen aber einen anderen Inhalt
 # können wir im schlimmsten Fall zuvor erstelle Daten ausversehen löschen oder
 # sie manipulieren ohne es zu merken. Deshalb bekommt jede Variable mithilfe dieser
-# Funktion einen separaten Namespace um die "uniqueness" der Variable zu gewährleisten.
+# Funktion eingenen Gültigkeitsbereich um die "uniqueness" der Variable zu gewährleisten.
 download_resurvey_germany <- function() {
 
   # Ordner raw_data als Sammelort für alle Datensätze
