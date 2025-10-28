@@ -61,7 +61,12 @@ Im Ordner `Skripte/Data_Loader/` sind R-Skripte enthalten zum laden der Rohdaten
 Das Skript `00_load_all.R` lädt hierbei alle verwendeten Datensätze herunter.
 Skripte nummeriert ab `01` dienen zum herunterladen der separaten verwendeten Datensätze
 
-
+> Einige der Skripte erfordern **Benutzerkonten oder API-Zugänge** (z. B. für GBIF).  
+> Benutzerkonten und API-Zugangsdaten werden **manuell lokal im eigenen Benutzerverzeichnis in der Datei `.Renviron`** gespeichert,  
+> um sensible Informationen (z. B. Benutzernamen, Passwörter oder Tokens) **nicht versehentlich öffentlich zu machen**.  
+> Die Datei `.Renviron` wird **nicht vom Repository bereitgestellt** und ist außerdem **in `.gitignore` enthalten**.  
+> Dadurch wird verhindert, dass vertrauliche Informationen versehentlich in das Repository hochgeladen werden. 
+> [Wiki-Eintrag „.Renviron erstellen“](https://github.com/Mighty0r0n/codap_data_generator/wiki/.Renviron-erstellen) zeigt hierbei wie sie erstellt wird.
 
 ### 5. Datensätze erstellen
 
