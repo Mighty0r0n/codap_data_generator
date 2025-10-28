@@ -21,8 +21,7 @@ sudo apt-get install libgdal-dev libgeos-dev libproj-dev libtbb-dev libnetcdf-de
 ```
 sollte diesen Fehler laut dem [Installationshandbuch](https://rspatial.github.io/terra/) lösen.
 
-Für einige weitere detailliertere Hintergrundinformationen, Erklärungen zur Projektstruktur und Hilfestellungen zur Nutzung des Codes  
-siehe das **[Projekt-Wiki](https://github.com/Mighty0r0n/codap_data_generator/wiki)**:
+Für einige weitere detailliertere Hintergrundinformationen, Erklärungen zur Projektstruktur und Hilfestellungen zur Nutzung des Codes siehe das **[Projekt-Wiki](https://github.com/Mighty0r0n/codap_data_generator/wiki)**
 
 
 ## Installation und Setup
