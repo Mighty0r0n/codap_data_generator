@@ -74,15 +74,15 @@ die entsprechenden Datensätze nun zu generieren.
 
 ```text
 codap_data_generator/
-├─ raw_data/                                     # Eingangsdatensätze (Rohdaten)
+├─ raw_data/                                     # Eingangsdatensätze (Rohdaten, nicht versioniert)
 │   ├─ ReSurveyGermany/                          # heruntergeladener iDiv-Datensatz (ID 3514)
 │   ├─ air_temperature_mean/                     # DWD Rasterdaten: mittlere Lufttemperatur (ASC)
 │   └─ precipitation/                            # DWD Rasterdaten: Niederschlag (ASC)
 │
-├─ result_data/                                  # Endgültig bereinigte und zusammengeführte Datensätze
+├─ result_data/                                  # Endgültig bereinigte und zusammengeführte Datensätze (nicht versioniert)
 │   └─ ...
 │
-├─ tmp_data/                                     # Zwischenstände oder temporäre Dateien
+├─ tmp_data/                                     # Zwischenstände oder temporäre Dateien (nicht versioniert)
 │   └─ ...
 │
 ├─ Skripte/                                      # Alle R-Skripte für das Projekt
