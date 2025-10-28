@@ -74,28 +74,32 @@ die entsprechenden Datensätze nun zu generieren.
 
 ```text
 codap_data_generator/
-├─ raw_data/                                     # Eingangsdatensätze (Rohdaten, nicht versioniert)
+├─ raw_data/                                     # Rohdaten (automatisch erstellt, nicht versioniert)
 │   ├─ ReSurveyGermany/                          # heruntergeladener iDiv-Datensatz (ID 3514)
 │   ├─ air_temperature_mean/                     # DWD Rasterdaten: mittlere Lufttemperatur (ASC)
-│   └─ precipitation/                            # DWD Rasterdaten: Niederschlag (ASC)
+│   ├─ precipitation/                            # DWD Rasterdaten: Niederschlag (ASC)
+│   └─ fish_gbif                                 # GBIF Daten zu Süßwasserfischen
 │
-├─ result_data/                                  # Endgültig bereinigte und zusammengeführte Datensätze (nicht versioniert)
+├─ result_data/                                  # Endgültig bereinigte und zusammengeführte Datensätze (automatisch erstellt, nicht versioniert)
 │   └─ ...
 │
-├─ tmp_data/                                     # Zwischenstände oder temporäre Dateien (nicht versioniert)
+├─ tmp_data/                                     # Zwischenstände oder temporäre Dateien (automatisch erstellt, nicht versioniert)
 │   └─ ...
 │
 ├─ Skripte/                                      # Alle R-Skripte für das Projekt
 │   ├─ Data_Loader/                              # Unterordner für alle Download- und Ladeskripte
 │   │   ├─ 00_load_all.R                         # führt alle Data-Loader-Skripte sequentiell aus
 │   │   ├─ 01_load_ReSurveyGermany.R             # lädt ReSurveyGermany-Daten (ID 3514)
-│   │   ├─ 02_download_dwd_asc_grids.R           # lädt DWD-Jahresraster (air_temperature_mean & precipitation)
+│   │   ├─ 02_load_dwd_asc_grids.R               # lädt DWD-Jahresraster (air_temperature_mean & precipitation)
+│   │   ├─ 03_load_fish_occurrences.R            # lädt die GBIF Datenbank zu den Süßwasserfischen (NUTZERZUGANG BENÖTIGT!)
 │   │   └─ ...                                   # ggf. weitere Quellen (z. B. Boden, Vegetation, etc.)
 │   │
-│   ├─ Datensatz_Pflanzenarten_Umweltfaktoren.R  # Haupt-Skript zur Zusammenstellung des kombinierten Datensatzes
+│   ├─ Datensatz_Fischarten.R                    # Skript für Datensatzgenerierung
+│   ├─ Datensatz_Pflanzenarten_Umweltfaktoren.R  # Skript für Datensatzgenerierung
+│   ├─ utils_data_description.R                  # utils-Funktionssammlung
 │   └─ ...                                       # weitere Analyse- oder Verarbeitungs-Skripte
 │
-├─ renv/                                         # Lokale renv-Library (nicht versioniert)
+├─ renv/                                         # Lokale renv-Library (automatisch erstellt, nicht versioniert)
 │
 ├─ renv.lock                                     # Paket-Snapshot für reproduzierbare Umgebung
 ├─ .Rprofile                                     # startet automatisch renv beim Öffnen
