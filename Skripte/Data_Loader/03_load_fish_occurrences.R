@@ -103,9 +103,9 @@ download_fish_occurrences <- function() {
   # worden ist. Zusätzlich wird nochmal ausgegeben wieviele Daten da jetzt wirklich
   # runter geladen worden sind.
   if (file_exists(occurrence_file)) {
-    occ <- fread(occurrence_file)
+    occurrences <- fread(occurrence_file)
     cat("occ Dimension:\n")
-    print(dim(occ))
+    print(dim(occurrences))
   } else {
     warning("occurrence.txt nicht gefunden")
   }
