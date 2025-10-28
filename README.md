@@ -1,8 +1,20 @@
 # CODAP Data Generator
 
+[![main](https://img.shields.io/badge/branch-main-brightgreen)](https://github.com/Mighty0r0n/codap_data_generator/tree/main)
+[![dev](https://img.shields.io/badge/branch-dev-yellow)](https://github.com/Mighty0r0n/codap_data_generator/tree/dev)
+
 Dieses Repository enthält R-Skripte zur Aufbereitung und Bereinigung von Datensätzen für die Plattform https://codap.concord.org/.  
 
 Das Projekt wurde mit RStudio entwickelt und nutzt `renv` für reproduzierbare Umgebungen.
+
+---
+
+## Branch-Übersicht
+
+- **`main`** – stabiler und getesteter Code, geeignet für Reproduktion und Nutzung  
+- **`dev`** – Entwicklungszweig mit Work-in-Progress-Skripten
+
+---
 
 ## Voraussetzungen
 
@@ -72,7 +84,7 @@ Skripte nummeriert ab `01` dienen zum herunterladen der separaten verwendeten Da
 Im Ordner `Skripte/` können nun die Skripte beginnend mit `Datensatz_*` ausgeführt werden um
 die entsprechenden Datensätze nun zu generieren.
 
-
+---
 
 ### Projektstruktur
 
