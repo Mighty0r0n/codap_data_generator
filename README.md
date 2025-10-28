@@ -9,16 +9,21 @@ Das Projekt wurde mit RStudio entwickelt und nutzt `renv` für reproduzierbare U
 - R Version ≥ 4.5.0  
 - RStudio (empfohlen)  
 - Git installiert und eingerichtet  
+- Renv
 - Optional: GitHub-Personal-Access-Token (für private Repositories)
 
 
-Linux/Max:
+Linux/Mac:
 Das Repo wurde unter Windows entwickelt. Falls dieses Repo unter Linux/MacOS
 gestartet wird, kann es sein, dass das R-package terra einen Fehler wirft.
 ```bash
 sudo apt-get install libgdal-dev libgeos-dev libproj-dev libtbb-dev libnetcdf-dev
 ```
-solltediesen Fehler laut dem [Installationshandbuch](https://rspatial.github.io/terra/) lösen.
+sollte diesen Fehler laut dem [Installationshandbuch](https://rspatial.github.io/terra/) lösen.
+
+Für einige weitere detailliertere Hintergrundinformationen, Erklärungen zur Projektstruktur und Hilfestellungen zur Nutzung des Codes  
+siehe das **[📘 Projekt-Wiki](https://github.com/Mighty0r0n/codap_data_generator/wiki)**:
+
 
 ## Installation und Setup
 
