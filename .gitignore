@@ -29,7 +29,7 @@ Thumbs.db
 *.html
 *.xml
 *.txt
-
+logs/*
 
 # Datensätze -> Diese sollen über den Dataloader geladen werden um das Repo klein und übersichtlich zu halten.
 *.csv
