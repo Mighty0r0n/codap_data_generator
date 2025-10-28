@@ -22,7 +22,6 @@ Das Projekt wurde mit RStudio entwickelt und nutzt `renv` für reproduzierbare U
 - RStudio (empfohlen)  
 - Git installiert und eingerichtet  
 - Renv
-- Optional: GitHub-Personal-Access-Token (für private Repositories)
 
 
 Linux/Mac:
