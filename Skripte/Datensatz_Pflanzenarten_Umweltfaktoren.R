@@ -34,8 +34,8 @@ generate_plant_env_data <- function() {
   
   # Die Daten werden hier nun mit der read_csv Funktion als Objekte geladen
   # und in einer Variablen zur späteren Verwendung gespeichert
-  re_survey_germany_data <- read_csv(re_survey_germany_pfad) 
-  header_survey_germany_data <- read_csv(header_survey_germany_pfad)
+  re_survey_germany_df <- read_csv(re_survey_germany_pfad) 
+  header_survey_germany_df <- read_csv(header_survey_germany_pfad)
   
   
   # Hinweis für den Nutzer, dass die Daten fehlerfrei eingelesen werden konnten.
@@ -46,13 +46,13 @@ generate_plant_env_data <- function() {
   # Keyword um beide Tabellen zusammenzufügen. Dies wird dann über einen
   # leftjoin gemacht, sodass jede Zeile in der Artentabelle
   # die Einträge für das ensprechende Releve angehängt werden.
-  re_survey_germany_merged <- re_survey_germany_data %>%
-    left_join(header_survey_germany_data, by = "PROJECT_ID_RELEVE_NR")
+  re_survey_germany_merged_df <- re_survey_germany_df %>%
+    left_join(header_survey_germany_df, by = "PROJECT_ID_RELEVE_NR")
   
   
-  r <- terra::rast(asc_file)
+  dwd_raster <- terra::rast(asc_file)
   
-  plot(r)
+  plot(dwd_raster)
   
   
   
