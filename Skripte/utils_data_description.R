@@ -81,7 +81,7 @@ describe_df <- function(df, log_file) {
 # Bei den Datensatz_* Files wird es als kleine "Funktionalität" benutzt um die
 # Skripte zum einen separat aber zum anderen auch "gepiped" mit dem 00-Skript 
 # laufen lassen zu können
-if (identical(environment(), globalenv())) {
+if (sys.nframe() == 0) {
   suppressPackageStartupMessages({
     library(readr)
     library(fs)

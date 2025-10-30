@@ -67,6 +67,6 @@ generate_plant_env_data <- function() {
 
 # Das entspricht dem Python `if __name__ == "__main__":`. Der untere Teil des Skripts
 # wird mit dieser if Abfrage nur dann ausgeführt, genau diese Datei ausgeführt wird.
-if (identical(environment(), globalenv())) {
+if (sys.nframe() == 0) {
   generate_plant_env_data()
 }

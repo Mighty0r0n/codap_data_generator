@@ -229,6 +229,6 @@ download_dwd_grids <- function() {
 # den separaten Aufruf in 00 ein zweites mal ausgeführt wird.
 # Ich möchte aber die Funktionalität, dass man alles über 00_load_all runter laden kann und jeweils
 # separat über die einzelnen Skripte.
-if (identical(environment(), globalenv())) {
+if (sys.nframe() == 0) {
   download_dwd_grids()
 }
