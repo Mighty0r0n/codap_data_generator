@@ -16,12 +16,12 @@ generate_oat_data <- function() {
   
   
   # Hier wird sich die Grund-Datei geholt
-  survey_df <- merge_re_survey_with_dwd_grids()
+  #survey_df <- merge_re_survey_with_dwd_grids()
   
-  #survey_df <- read_csv("tmp_data/ReSurveyGermany/re_survey_germany_filtered_years.csv")
+  survey_df <- read_csv("tmp_data/ReSurveyGermany/re_survey_germany_filtered_years.csv")
   
   survey_df <- survey_df %>%
-    mutate(across(matches("^(COV_|TREE_|HERB_|SHRUB_)"), ~ replace_na(.x, 0)))
+    mutate(across(matches("^(COV_|TREE_|HERB_|SHRUB_|SURF_)"), ~ replace_na(.x, 0)))
   
   
   # Alle Spezies die in Spalte 2-5 gesehen worden sind.
@@ -124,7 +124,7 @@ generate_oat_data <- function() {
       Gesamtdeckung     = mean(Cover_Perc), 
       LONGITUDE         = first(LONGITUDE),
       LATITUDE          = first(LATITUDE),
-      SURF_AREA_mean    = mean(SURF_AREA, na.rm = TRUE),
+      SURF_AREA_mean    = mean(SURF_AREA),
       n_plots           = n_distinct(paste(LONGITUDE, LATITUDE, sep = "_")), 
       across(matches("^(COV_|TREE_|HERB_)"), ~ mean(.x)),
       MEAN_TEMPERATURE = mean(MEAN_TEMPERATURE),
