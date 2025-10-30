@@ -4,6 +4,13 @@
 ############################################################
 
 
+# ACHTUNG, meinen Plan den ich für dieses Skript hatte kann ich bisher nicht umsetzen.
+# Dieses Skript führt leider jeden download 2 mal aus. Lieber die 01-03 skripte nutzen
+
+
+
+
+
 # Alle Skripte
 
 
