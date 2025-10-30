@@ -221,14 +221,6 @@ download_dwd_grids <- function() {
   invisible(TRUE)
 }
 
-# Das entspricht dem Python `if __name__ == "__main__":`. Der untere Teil des Skripts
-# wird mit dieser if Abfrage nur dann ausgeführt, wenn die Datei separat ausgeführt wird
-# und nicht wenn sie über das Skript 00_load_all.R ausgeführt wird. Sonst würden
-# wir alles doppelt runterladen. Da die oben definierte Funktion sonst in 00_load_all.R
-# über source() ausgeführt wird, was jede Zeile in der gesourcten datei ausführt und über
-# den separaten Aufruf in 00 ein zweites mal ausgeführt wird.
-# Ich möchte aber die Funktionalität, dass man alles über 00_load_all runter laden kann und jeweils
-# separat über die einzelnen Skripte.
-if (sys.nframe() == 0) {
-  download_dwd_grids()
-}
+
+download_dwd_grids()
+
