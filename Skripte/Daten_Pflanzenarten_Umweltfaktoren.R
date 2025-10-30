@@ -17,6 +17,11 @@ generate_plant_env_data <- function() {
   log_dir <- path("logs", "ReSurveyGermany")
   dir_create(log_dir, recurse = TRUE)
   log_file <- path(log_dir, "ReSurvey_merged.log")
+  
+  
+  # Ordner für eventuelle tmp_files anlegen
+  tmp_dir <- path("tmp_data", "ReSurveyGermany")
+  dir_create(tmp_dir, recurse = TRUE)
   ############################################################
   # 1. Daten einlesen
   ############################################################
@@ -57,13 +62,6 @@ generate_plant_env_data <- function() {
   # Wir nutzen die Rasterdaten des DWD von den Jahren 2000-2024, dementsprechend
   # filtere ich alle Datenpunkte raus, die nicht in dieser Jahresspanne liegen.
   re_survey_germany_filtered_years_df <- re_survey_germany_merged_df %>% filter(YEAR > 2000)
-  
-  
-  # Das ist erstmal nur für mich für schnellere Kontrolle ob die Rasterdaten richtig gemapped worden sind.
-  re_survey_germany_filtered_years_df <- re_survey_germany_filtered_years_df[
-    ,
-    c("LONGITUDE", "LATITUDE", "RELEVE_NR.x", "TaxonName", "RS_PLOT", "YEAR")
-    ]
   
   
   # Ersten Überblick über das DF bekommen
@@ -108,6 +106,12 @@ generate_plant_env_data <- function() {
     precipitation_grid_stack,
     column_name="PRECIPITATION"
   )
+  
+  # Hier wird die Datei nun erstmal zwischengespeichert falls man die Tabelle
+  # außerhalb dieses Workflows anschauen möchte oder muss
+  write.csv(re_survey_germany_filtered_years_df,
+            file = path(tmp_dir, "re_survey_germany_filtered_years.csv"),
+            row.names = FALSE)
   
   #-----------------------------------------------------------------------------
   # Kleiner NA-Check
