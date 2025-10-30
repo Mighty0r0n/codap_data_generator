@@ -7,7 +7,6 @@
 
 
 
-
 # Diese Funktion soll erstmal einen allgemeinen Überblick über die Daten verschaffen
 
 describe_df <- function(df, log_file) {
@@ -73,37 +72,58 @@ describe_df <- function(df, log_file) {
   invisible(TRUE)
 }
 
-# Das entspricht dem Python `if __name__ == "__main__":`. Das ist ein kleiner
-# Trick der es ermöglicht, dass alles was hier unten steht NUR dann ausgeführt
-# wird, wenn wir auch GENAU diese Datei ausführen.
-# Explizit hier wird nicht wichtiges stehen. In utils files teste ich hier idr die
-# Funktionen direkt die ich schreibe.
-# Bei den Datensatz_* Files wird es als kleine "Funktionalität" benutzt um die
-# Skripte zum einen separat aber zum anderen auch "gepiped" mit dem 00-Skript 
-# laufen lassen zu können
-if (sys.nframe() == 0) {
-  suppressPackageStartupMessages({
-    library(readr)
-    library(fs)
-    })
+get_value_from_grid <- function(r_stack, year, longitude, latitude) {
+  # Hier suchen wir das entsprechende Objekt zum passendem Jahr raus
+  layer_name <- as.character(year)
+  if (!layer_name %in% names(r_stack)) {
+    stop("Fehler beim Datenfiltern. Jahr nicht im Stack: ", layer_name)
+  }
+  r_year <- r_stack[[layer_name]]
   
-  fisch_dir <- fs::path("raw_data", "fish_gbif")
-  fisch_occurrence_pfad <- fs::path(fisch_dir, "occurrence.txt")
+  # Die Koordinaten der Re_Survey_Germany liegen als WGS-84 vor. Zum abgleich zu den
+  # DWD Rastern werden diese jetzt auf EPSG:31467 projeziert.
+  pt_wgs <- vect(
+    data.frame(lon = longitude, lat = latitude),
+    geom = c("lon", "lat"),
+    crs = "EPSG:4326"
+    )
   
-  fisch_occurrence_df <- read_tsv(fisch_occurrence_pfad)
+  pt_gk  <- project(pt_wgs, crs(r_year))
   
-  # Log-Zeug vorbereiten
-  log_dir <- fs::path("logs", "fish_gbif")
+  # Jetzt wird die Value an dem entsprechendem Punkt zurückgegeben
+  val <- extract(r_year, pt_gk, ID = FALSE)[[1]]
   
-  # Kurzer Check ob das log_dir bereits existiert, wenn nicht wird es erstellt.
-  fs::dir_create(log_dir, recurse = TRUE)
   
-  # Pfad zur eigentlichen log-Datei speziell zu dem df
-  occurrence_df_log_file <- fs::path(log_dir, "occurrence.log")
-  
-  describe_df(
-    df = fisch_occurrence_df,
-    log_file = occurrence_df_log_file
-  )
+  # Laut den Metadaten liegen die Temperaturen in 1/10°C vor, dementsprechend
+  # Rechnen wir es auf unsere "gängige" skala um
+  val_celsius <- val / 10
+  return(val_celsius)
+}
 
+
+
+# Diese Funktion wird genutzt um Daten aus DWD Rasterdaten unseren CSVs anzuhängen
+add_grid_data_to_dataframe <- function(df, grid_stack, column_name) {
+  # Funktion die hauptsächlich bisher mit den ReSurveyGermany und DWD grids benutzt wird
+  # Wenn weitere Daten als ReSurveyGermany hinzukommen muss ein check für das benutzte
+  # Eingangskoordinatensystem gemacht werden und die punkte richtig zu projezieren
+  
+  
+  # Die Koordinaten der Re_Survey_Germany liegen als WGS-84 vor. Zum abgleich zu den
+  # DWD Rastern werden diese jetzt auf EPSG:31467 projeziert.
+  coordinates_wgs <- terra::vect(df, geom = c("LONGITUDE", "LATITUDE"), crs = "EPSG:4326")
+  coordinates_epsg  <- terra::project(coordinates_wgs, terra::crs(grid_stack))
+  
+  # Rasterwerte extrahieren (alle Jahre gleichzeitig)
+  all_values <- terra::extract(grid_stack, coordinates_epsg, ID = FALSE)
+  
+  
+  # Hier werden jetzt die WERTE der vorher extrahierten Koordinaten mit den Jahreszahlen
+  # abgeglichen und dem DataFrame angehangen
+  df[[column_name]] <- all_values[
+    cbind(seq_len(nrow(df)), match(as.character(df$YEAR), names(all_values)))
+  ]
+  
+  # Das DataFrame wird jetzt mit der neuen Spalte zurückgegeben
+  return(df)
 }
