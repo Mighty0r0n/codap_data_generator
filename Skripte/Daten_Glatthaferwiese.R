@@ -16,9 +16,9 @@ generate_oat_data <- function() {
   
   
   # Hier wird sich die Grund-Datei geholt
-  #survey_df <- merge_re_survey_with_dwd_grids()
+  survey_df <- merge_re_survey_with_dwd_grids()
   
-  survey_df <- read_csv("tmp_data/ReSurveyGermany/re_survey_germany_filtered_years.csv")
+  #survey_df <- read_csv("tmp_data/ReSurveyGermany/re_survey_germany_filtered_years.csv")
   
   survey_df <- survey_df %>%
     mutate(across(matches("^(COV_|TREE_|HERB_|SHRUB_)"), ~ replace_na(.x, 0)))
