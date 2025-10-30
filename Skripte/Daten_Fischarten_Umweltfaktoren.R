@@ -15,8 +15,8 @@ source("Skripte/utils_data_description.R")
 generate_fish_env_data <- function() {
   
   
-  fisch_dir <- fs::path("raw_data", "fish_gbif")
-  fisch_occurrence_pfad <- fs::path(fisch_dir, "occurrence.txt")
+  fisch_dir <- path("raw_data", "fish_gbif")
+  fisch_occurrence_pfad <- path(fisch_dir, "occurrence.txt")
   
   fisch_occurrence_df <- read_tsv(fisch_occurrence_pfad)
   
@@ -30,13 +30,13 @@ generate_fish_env_data <- function() {
   
   
   # Log-Zeug vorbereiten
-  log_dir <- fs::path("logs", "fish_gbif")
+  log_dir <- path("logs", "fish_gbif")
   
   # Kurzer Check ob das log_dir bereits existiert, wenn nicht wird es erstellt.
-  fs::dir_create(log_dir, recurse = TRUE)
+  dir_create(log_dir, recurse = TRUE)
   
   # Pfad zur eigentlichen log-Datei speziell zu dem df
-  occurrence_df_log_file <- fs::path(log_dir, "occurrence.log")
+  occurrence_df_log_file <- path(log_dir, "occurrence.log")
   
   describe_df(
     df = fisch_occurrence_df,

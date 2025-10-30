@@ -2,8 +2,9 @@ suppressPackageStartupMessages({
   library(dplyr)
   library(readr)
   library(terra)
+  library(fs)
 })
-
+source("Skripte/utils_data_description.R")
 # Das ganze wird als Funktion definiert, um zu Verhindern dass wir zu viele
 # Globale Variablen erzeugen. Globale Variablen sind zu jeder Zeit der Laufzeit
 # gespeichert. Haben 2 Skripte nun die selben Variablen aber einen anderen Inhalt
@@ -12,8 +13,10 @@ suppressPackageStartupMessages({
 # Funktion eingenen Gültigkeitsbereich um die "uniqueness" der Variable zu gewährleisten.
 generate_plant_env_data <- function() {
   
-  
-  
+  # Log vorbereiten
+  log_dir <- path("logs", "ReSurveyGermany")
+  dir_create(log_dir, recurse = TRUE)
+  log_file <- path(log_dir, "ReSurvey_merged.log")
   ############################################################
   # 1. Daten einlesen
   ############################################################
@@ -21,15 +24,15 @@ generate_plant_env_data <- function() {
   
   
   # Pfad zum Ordner der raw_dateien als Variable setzen.
-  survey_pfad <- "raw_data/ReSurveyGermany/"
-  mean_temp_path <- "raw_data/air_temperature_mean/"
-  precipitation_path <- "raw_data/precipitation/"
+  survey_dir <- path("raw_data", "ReSurveyGermany")
+  mean_temp_dir <- path("raw_data", "air_temperature_mean")
+  precipitation_path <- path("raw_data", "precipitation")
   
   # Pfäde der genutzten Dateien in Variablen zur späteren Verwendung speichern.
-  re_survey_germany_pfad <- paste0(survey_pfad, "ReSurveyGermany.csv")
-  header_survey_germany_pfad <- paste0(survey_pfad, "Header_ReSurveyGermany.csv")
+  re_survey_germany_pfad <- path(survey_dir, "ReSurveyGermany.csv")
+  header_survey_germany_pfad <- path(survey_dir, "Header_ReSurveyGermany.csv")
   
-  asc_file <- paste0(mean_temp_path, "grids_germany_annual_air_temp_mean_189117.asc")
+  asc_file <- path(mean_temp_dir, "grids_germany_annual_air_temp_mean_189117.asc")
   
   
   # Die Daten werden hier nun mit der read_csv Funktion als Objekte geladen
@@ -49,7 +52,10 @@ generate_plant_env_data <- function() {
   re_survey_germany_merged_df <- re_survey_germany_df %>%
     left_join(header_survey_germany_df, by = "PROJECT_ID_RELEVE_NR")
   
-  
+  describe_df(
+    df = re_survey_germany_merged_df,
+    log_file = log_file
+  )
   dwd_raster <- terra::rast(asc_file)
   
   plot(dwd_raster)
@@ -60,13 +66,7 @@ generate_plant_env_data <- function() {
 }
 
 # Das entspricht dem Python `if __name__ == "__main__":`. Der untere Teil des Skripts
-# wird mit dieser if Abfrage nur dann ausgeführt, wenn die Datei separat ausgeführt wird
-# und nicht wenn sie über das skript 00_load_all.R ausgeführt wird. Sonst würden
-# wir alles doppelt runterladen. Da die oben definierte Funktion sonst in 00_load_all.R
-# über source() ausgeführt wird, was jede Zeile in der gesourcten datei ausführt und über
-# den separaten Aufruf in 00 ein zweites mal ausgeführt wird.
-# Ich möchte aber die Funktionalität, dass man alles über 00_load_all runter laden kann und jeweils
-# separat über die einzelnen Skripte.
+# wird mit dieser if Abfrage nur dann ausgeführt, genau diese Datei ausgeführt wird.
 if (identical(environment(), globalenv())) {
   generate_plant_env_data()
 }
