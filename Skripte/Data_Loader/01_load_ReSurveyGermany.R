@@ -157,20 +157,20 @@ download_resurvey_germany <- function() {
   # Außerdem können in Metafeldern von Datenbanken Kommas als Metainformationstrenner
   # innerhalb einer Spalte verwendet werden.
   
-  for (csv_file in csv_files) {
-    
-    csv_path <- path(re_survey_extract_dir, csv_file)
-    
-    message("[INFO] Konvertiere ", basename(csv_path), " zu Semikolon-Trennung ...")
-    
-    # Datei einlesen (kommagetrennt)
-    data <- readr::read_csv(csv_path, show_col_types = FALSE)
-    
-    # Mit Semikolon wieder überschreiben
-    readr::write_delim(data, csv_path, delim = ";")
-    
-    message("[OK] ", basename(csv_path), " erfolgreich konvertiert und überschrieben.")
-  }
+  # for (csv_file in csv_files) {
+  #   
+  #   csv_path <- path(re_survey_extract_dir, csv_file)
+  #   
+  #   message("[INFO] Konvertiere ", basename(csv_path), " zu Semikolon-Trennung ...")
+  #   
+  #   # Datei einlesen (kommagetrennt)
+  #   data <- readr::read_csv(csv_path, show_col_types = FALSE)
+  #   
+  #   # Mit Semikolon wieder überschreiben
+  #   readr::write_delim(data, csv_path, delim = ";")
+  #   
+  #   message("[OK] ", basename(csv_path), " erfolgreich konvertiert und überschrieben.")
+  # }
   
   
   message("[DONE] Download und Entpacken abgeschlossen.")
