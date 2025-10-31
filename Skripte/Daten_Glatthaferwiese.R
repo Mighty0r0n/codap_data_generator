@@ -230,6 +230,8 @@ generate_oat_data <- function() {
   # summary(oat_lm) gibt an:
   # Multiple R-squared:  0.1461,	Adjusted R-squared:  0.1155 was sehr dürftig ist.
   # Scenarien werden nicht wirklich durch die Temperatur mit diesem Modell beeinflusst.
+  # Mit plot(oat_lm) in der interaktiven console können diverese Regressionsplots betrachtet werden
+  # Zeigen generell starke streuung, aber es sind "brauchbare" in dem sinne vorhersagen.
 
   scenario15 <- agg_site_year
   scenario15$TEMPERATURE <- scenario15$TEMPERATURE + 1.5
