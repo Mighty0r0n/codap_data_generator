@@ -221,14 +221,7 @@ merge_re_survey_with_dwd_grids <- function() {
                                                                    precipitation_grid_stack,
                                                                    column_name = "PRECIPITATION")
   
-  # Hier wird die Datei nun erstmal zwischengespeichert falls man die Tabelle
-  # außerhalb dieses Workflows anschauen möchte oder muss
-  write.csv(
-    re_survey_germany_filtered_years_df,
-    file = path(tmp_dir, "re_survey_germany_filtered_years.csv"),
-    row.names = FALSE
-  )
-  
+
   #-----------------------------------------------------------------------------
   # Kleiner NA-Check
   # Hier wurden nur 0,12% der übrigen 300 000 Daten als NA markiert.
@@ -249,6 +242,15 @@ merge_re_survey_with_dwd_grids <- function() {
   re_survey_germany_filtered_years_df <- re_survey_germany_filtered_years_df[!is.na(re_survey_germany_filtered_years_df$MEAN_TEMPERATURE) &
                                                                                !is.na(re_survey_germany_filtered_years_df$PRECIPITATION), ]
   #-----------------------------------------------------------------------------
+  
+  # Hier wird die Datei nun erstmal zwischengespeichert falls man die Tabelle
+  # außerhalb dieses Workflows anschauen möchte oder muss
+  write.csv(
+    re_survey_germany_filtered_years_df,
+    file = path(tmp_dir, "re_survey_germany_filtered_years.csv"),
+    row.names = FALSE
+  )
+  
   message("ALL DONE")
   
   return(re_survey_germany_filtered_years_df)
