@@ -233,6 +233,8 @@ generate_oat_data <- function() {
   # Mit plot(oat_lm) in der interaktiven console können diverese Regressionsplots betrachtet werden
   # Zeigen generell starke streuung, aber es sind "brauchbare" in dem sinne vorhersagen.
 
+  
+  # Für jedes Scenario ein Datensatz für die Vorhersage durchs lm erzeugen
   scenario15 <- agg_site_year
   scenario15$TEMPERATURE <- scenario15$TEMPERATURE + 1.5
   
@@ -245,7 +247,8 @@ generate_oat_data <- function() {
   scenario4 <- agg_site_year
   scenario4$TEMPERATURE <- scenario4$TEMPERATURE + 4
  
-
+  
+  # Hier werden die predictions angehängt
   agg_site_year$Artenzahl_plus15 <- predict(oat_lm, newdata = scenario15)
   agg_site_year$Artenzahl_plus2 <- predict(oat_lm, newdata = scenario2)
   agg_site_year$Artenzahl_plus3 <- predict(oat_lm, newdata = scenario3)
