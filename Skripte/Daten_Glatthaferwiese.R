@@ -127,10 +127,11 @@ generate_oat_data <- function() {
       SURF_AREA_mean    = mean(SURF_AREA),
       n_plots           = n_distinct(paste(LONGITUDE, LATITUDE, sep = "_")), 
       across(matches("^(COV_|TREE_|HERB_)"), ~ mean(.x)),
-      MEAN_TEMPERATURE = mean(MEAN_TEMPERATURE),
-      PRECIPITATION = mean(PRECIPITATION),
+      MEAN_TEMPERATURE = round(mean(MEAN_TEMPERATURE)),
+      PRECIPITATION = round((mean(PRECIPITATION) / 10) /10) * 10, # Lässt sich nicht gut bisher für codap visualisierung skalieren
       .groups = "drop"
     )
+  
   
   # Alle zahlenwerte auf 2 Stellen runden
   agg_site_year <- agg_site_year %>%
