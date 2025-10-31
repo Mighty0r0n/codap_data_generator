@@ -255,3 +255,15 @@ merge_re_survey_with_dwd_grids <- function() {
   
   return(re_survey_germany_filtered_years_df)
 }
+
+
+
+
+apply_scaling <- function(df, scaling_params, predictors) {
+  for (var in predictors) {
+    center <- scaling_params[[paste0(var, "_center")]]
+    scale  <- scaling_params[[paste0(var, "_scale")]]
+    df[[var]] <- (df[[var]] - center) / scale
+  }
+  return(df)
+}
