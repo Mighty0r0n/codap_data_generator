@@ -9,7 +9,7 @@
 
 # Diese Funktion soll erstmal einen allgemeinen Überblick über die Daten verschaffen
 
-describe_df <- function(df, log_file) {
+describe_df <- function(df, log_dir, log_file) {
   suppressPackageStartupMessages({
     library(skimr)
     library(dplyr)
@@ -26,7 +26,7 @@ describe_df <- function(df, log_file) {
     tibble.print_max = Inf,
     tibble.width = Inf
   )
-  
+  dir_create(log_dir, recurse = TRUE)
   
   # sink leitet nun alle folgenden Konsolenausgaben in eine Datei um
   # Dort stehen dann die Beschreibungen zu dem Datensatz.
@@ -109,7 +109,7 @@ merge_re_survey_with_dwd_grids <- function() {
   })
   # Log vorbereiten
   log_dir <- path("logs", "ReSurveyGermany")
-  dir_create(log_dir, recurse = TRUE)
+ 
   log_file <- path(log_dir, "ReSurvey_merged.log")
   
   
@@ -162,14 +162,14 @@ merge_re_survey_with_dwd_grids <- function() {
   
   columns_to_remove <- c(
     "PROJECT_ID.x",
-    "RELEVE_NR.x",
-    "PROJECT_ID_RELEVE_NR",
+    #"RELEVE_NR.x",
+    #"PROJECT_ID_RELEVE_NR",
     "RS_PROJECT",
     "PROJECT_ID.y",
     "RS_PLOT",
     "LOCALITY",
     "RS_OBSERV",
-    "RELEVE_NR.y",
+    #"RELEVE_NR.y",
     "DATE",
     "LOC_METH_COMMENT",
     "COUNTRY",
@@ -186,7 +186,7 @@ merge_re_survey_with_dwd_grids <- function() {
   
   
   # Ersten Überblick über das DF bekommen
-  describe_df(df = re_survey_germany_filtered_years_df, log_file = log_file)
+  describe_df(df = re_survey_germany_filtered_years_df, log_dir = log_dir, log_file = log_file)
   
   
   # Hier werden die asc files as Stack eingeladen.
@@ -209,12 +209,12 @@ merge_re_survey_with_dwd_grids <- function() {
   # Helperfunktion um Rasterdaten dem Df hinzuzufügen
   re_survey_germany_filtered_years_df = add_grid_data_to_dataframe(re_survey_germany_filtered_years_df,
                                                                    mean_temperature_grid_stack,
-                                                                   column_name = "MEAN_TEMPERATURE")
+                                                                   column_name = "TEMPERATURE")
   
   # Laut den Metadaten liegen die Temperaturen in 1/10°C vor, dementsprechend
   # Rechnen wir es auf unsere "gängige" skala um
-  re_survey_germany_filtered_years_df$MEAN_TEMPERATURE <-
-    re_survey_germany_filtered_years_df$MEAN_TEMPERATURE / 10
+  re_survey_germany_filtered_years_df$TEMPERATURE <-
+    re_survey_germany_filtered_years_df$TEMPERATURE / 10
   
   
   re_survey_germany_filtered_years_df = add_grid_data_to_dataframe(re_survey_germany_filtered_years_df,
@@ -227,7 +227,7 @@ merge_re_survey_with_dwd_grids <- function() {
   # Hier wurden nur 0,12% der übrigen 300 000 Daten als NA markiert.
   # Diese NA Zeilen verwerfe ich im folgenden einfach, da es echt wenige sind
   # und wir genug Daten übrig haben
-  na_temp <- mean(is.na(re_survey_germany_filtered_years_df$MEAN_TEMPERATURE)) * 100
+  na_temp <- mean(is.na(re_survey_germany_filtered_years_df$TEMPERATURE)) * 100
   na_prec <- mean(is.na(re_survey_germany_filtered_years_df$PRECIPITATION)) * 100
   
   cat(
@@ -239,7 +239,7 @@ merge_re_survey_with_dwd_grids <- function() {
   )
   
   
-  re_survey_germany_filtered_years_df <- re_survey_germany_filtered_years_df[!is.na(re_survey_germany_filtered_years_df$MEAN_TEMPERATURE) &
+  re_survey_germany_filtered_years_df <- re_survey_germany_filtered_years_df[!is.na(re_survey_germany_filtered_years_df$TEMPERATURE) &
                                                                                !is.na(re_survey_germany_filtered_years_df$PRECIPITATION), ]
   #-----------------------------------------------------------------------------
   
