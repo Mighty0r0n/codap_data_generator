@@ -164,11 +164,11 @@ merge_re_survey_with_dwd_grids <- function() {
     "PROJECT_ID.x",
     #"RELEVE_NR.x",
     #"PROJECT_ID_RELEVE_NR",
-    "RS_PROJECT",
+    #"RS_PROJECT",
     "PROJECT_ID.y",
-    "RS_PLOT",
+    #"RS_PLOT",
     "LOCALITY",
-    "RS_OBSERV",
+    #"RS_OBSERV",
     #"RELEVE_NR.y",
     "DATE",
     "LOC_METH_COMMENT",
@@ -241,7 +241,6 @@ merge_re_survey_with_dwd_grids <- function() {
   
   re_survey_germany_filtered_years_df <- re_survey_germany_filtered_years_df[!is.na(re_survey_germany_filtered_years_df$TEMPERATURE) &
                                                                                !is.na(re_survey_germany_filtered_years_df$PRECIPITATION), ]
-  #-----------------------------------------------------------------------------
   
   # Hier wird die Datei nun erstmal zwischengespeichert falls man die Tabelle
   # außerhalb dieses Workflows anschauen möchte oder muss
@@ -256,14 +255,24 @@ merge_re_survey_with_dwd_grids <- function() {
   return(re_survey_germany_filtered_years_df)
 }
 
-
-
-
-apply_scaling <- function(df, scaling_params, predictors) {
-  for (var in predictors) {
-    center <- scaling_params[[paste0(var, "_center")]]
-    scale  <- scaling_params[[paste0(var, "_scale")]]
-    df[[var]] <- (df[[var]] - center) / scale
-  }
-  return(df)
+# Kleine Funktion mit der RS_PLOTS aus den Daten entfernen kann,
+# an denen generell wenige Messungen stattfanden
+# Dient lediglich dazu Datensätze um das codap zeilen limit von 5000 zu filtern.
+filter_low_density_plots <- function(df, 
+                               n_rows_threshold,
+                               presence_percent_threshold) {
+  library(dplyr)
+  
+  plot_counts <- df %>%
+    count(RS_SITE, RS_PLOT, name = "n_rows")
+  
+  keep_plots <- plot_counts %>%
+    filter(n_rows >= n_rows_threshold) %>%
+    select(RS_SITE, RS_PLOT)
+  
+  df_filtered <- df %>%
+    semi_join(keep_plots, by = c("RS_SITE", "RS_PLOT")) 
+  
+  return(df_filtered)
 }
+
