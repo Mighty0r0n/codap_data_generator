@@ -15,18 +15,22 @@ source("Skripte/utils_data_description.R")
 # Funktion eingenen Gültigkeitsbereich um die "uniqueness" der Variable zu gewährleisten.
 generate_oat_data <- function() {
   # Hier wird sich die Grund-Datei geholt
-  # survey_df <- merge_re_survey_with_dwd_grids()
+  #survey_df <- merge_re_survey_with_dwd_grids()
   
   survey_df <- read_csv("tmp_data/ReSurveyGermany/re_survey_germany_filtered_years.csv")
   
-  survey_df <- survey_df %>%
-    mutate(across(matches("^(COV_|TREE_|HERB_|SHRUB_|SURF_)"), ~ replace_na(.x, 0))) %>%
-    mutate(
-      Presence = if_else(!is.na(Cover_Perc) & Cover_Perc > 0.1, 1L, 0L)
-    )
+  #-----------------------------------------------------------------------------
+  
+  oat_df <- survey_df %>% filter(EUNIS == "R22")
+  
+  oat_df <- oat_df %>%
+    mutate(across(
+      matches("^(COV_|TREE_|HERB_|SHRUB_|SURF_)"),
+      ~ replace_na(.x, 0)
+    ))
   
   # TODO: Wir verlieren sehr viele Datenpunkte wenn wir ALTITUDE und SLope einbeziehen wollen
-  # NAs könnten nur mit absoluter Vorsicht imputed werden. 
+  # NAs könnten nur mit absoluter Vorsicht imputed werden.
   # Nach den logs:
   
   #    column           type       n_na n_unique
@@ -36,21 +40,21 @@ generate_oat_data <- function() {
   
   # NA is ALTITUDE und Slope, diese nicht auf 0 setzten. Diese Daten werden entfernt.
   #survey_df <- survey_df %>%
-   # filter(!is.na(ALTITUDE), !is.na(SLOPE))
+  # filter(!is.na(ALTITUDE), !is.na(SLOPE))
   
   
-  # Alle Spezies die in Spalte 2-5 gesehen worden sind.
+  # Alle Spezies die in Spalte 2-5 mit mind II gesehen worden sind
   oat_species <- c(
     "Galium mollugo agg.",
     "Arrhenatherum elatius",
     "Bromus hordeaceus",
     "Crepis biennis",
-    "Agropyron repens",
-    "Urtica dioica",
-    "Cirsium arvense",
+    #"Agropyron repens",
+    #"Urtica dioica",
+    #"Cirsium arvense",
     "Ranunculus repens",
-    "Rumex crispus",
-    "Agrostis stolonifera",
+    #"Rumex crispus",
+    #"Agrostis stolonifera",
     "Daucus carota",
     "Pastinaca sativa",
     "Glechoma hederacea",
@@ -83,7 +87,7 @@ generate_oat_data <- function() {
     "Lolium perenne",
     "Tragopogon pratensis agg.",
     "Rhinanthus minor",
-    "Carum carvi",
+    #"Carum carvi",
     "Taraxacum officinale",
     "Rumex acetosa",
     "Ranunculus acris",
@@ -103,7 +107,7 @@ generate_oat_data <- function() {
     "Prunella vulgaris",
     "Sanguisorba officinalis",
     "Filipendula ulmaria",
-    "Myosotis palustris agg.",
+    #"Myosotis palustris agg.",
     "Festuca rubra agg.",
     "Plantago lanceolata",
     "Poa pratensis agg.",
@@ -118,155 +122,176 @@ generate_oat_data <- function() {
     "Saxifraga granulata",
     "Briza media",
     "Pimpinella saxifraga",
-    "Sanguisorba minor",
-    "Plantago major",
-    "Convolvulus arvensis",
-    "Tripleurospermum inodorum",
-    "Tanacetum vulgare",
-    "Silene alba"
+    "Sanguisorba minor"
+    #"Plantago major",
+    #"Convolvulus arvensis",
+    #"Tripleurospermum inodorum",
+    #"Tanacetum vulgare",
+    #"Silene alba"
   )
   
   
-  survey_df <- survey_df %>% filter(TaxonName %in% oat_species)
+  oat_df <- oat_df %>% filter(TaxonName %in% oat_species)
+  
+  
+  # Datensatz verkleinern
+  df_r22_filtered <- filter_low_density_plots(
+    df = oat_df,
+    n_rows_threshold = 22,
+    presence_percent_threshold = 1
+  )
+  
+  # Threshold für presence/absence nach https://doi.org/10.5281/zenodo.16895007 auf 1% gesetzt
+  df_r22_filtered <- df_r22_filtered %>%
+    mutate(Presence = if_else(Cover_Perc >= 1, 1, 0))
+  
+  
   
   #-----------------------------------------------------------------------------
   # Hier beginnt die Modellierung
-  # Lose nach DOI:10.14471/2017.37.010 ausgewählt 
+  # Lose nach DOI:10.14471/2017.37.010 ausgewählt
   # Dort wurde aufgeführt das COV_LITTER und COV_ROCK unter umständen problematisch
   # für die Modellierung sein können, da sie oft stark miteinander korrelieren.
   # Dementsprechend wird das hier erstmal kurz überprüft
   predictors <- c(
-    "TEMPERATURE", "PRECIPITATION",
-    "COV_HERBS", "COV_TREES", "COV_SHRUBS", "COV_LITTER", "COV_ROCK",
-    "COV_MOSSES", "Cover_Perc", "HERB_HIGH", "SURF_AREA",
-    "LONGITUDE", "LATITUDE"
+    "TEMPERATURE",
+    "PRECIPITATION",
+    "COV_HERBS",
+    "COV_LITTER",
+    "COV_MOSSES",
+    "LONGITUDE",
+    "LATITUDE"
   )
-  survey_scaled <- survey_df
   
-  scaling_params <- survey_df %>%
-    summarise(across(all_of(predictors),
-                     list(center = ~mean(.x, na.rm = TRUE),
-                          scale  = ~sd(.x, na.rm = TRUE))))
-  survey_scaled[predictors] <- scale(survey_scaled[predictors])
   
   # Hier werden die zu überprüfenden Spalten ausgewählt
-  cov_vars <- survey_df %>%
-    select(TEMPERATURE, PRECIPITATION,
-             COV_HERBS, COV_TREES, COV_SHRUBS, COV_LITTER, COV_ROCK,
-             COV_MOSSES, Cover_Perc, HERB_HIGH, SURF_AREA, LONGITUDE,
-             LATITUDE,)
+  cov_vars <- df_r22_filtered %>%
+    select(predictors)
   
-  # Korrelationen berechnen (ohne NAs)
+  # Korrelationen überprüfen
   cor_matrix <- cor(cov_vars, use = "complete.obs")
-
+  
   
   oat_lm <- glm(
     Presence ~ TEMPERATURE + PRECIPITATION +
-      COV_HERBS + COV_TREES + COV_SHRUBS + COV_LITTER + COV_ROCK +
-      COV_MOSSES + Cover_Perc + HERB_HIGH + SURF_AREA + 
-      LONGITUDE + LATITUDE,
-    data = survey_scaled,
+      COV_HERBS + COV_LITTER +
+      COV_MOSSES + LONGITUDE + LATITUDE,
+    data = df_r22_filtered,
     family = binomial(link = "logit"),
     control = glm.control(maxit = 100)
   )
   
   
   
-  # summary(oat_lm) gibt an:
-  # Multiple R-squared:  0.1461,	Adjusted R-squared:  0.1155 was sehr dürftig ist.
-  # Scenarien werden nicht wirklich durch die Temperatur mit diesem Modell beeinflusst.
-  # Mit plot(oat_lm) in der interaktiven console können diverese Regressionsplots betrachtet werden
-  # Zeigen generell starke streuung, aber es sind "brauchbare" in dem sinne vorhersagen.
-  
-  
   # Für jedes Scenario ein Datensatz für die Vorhersage durchs lm erzeugen
-  scenario15 <- survey_df
+  scenario15 <- df_r22_filtered
   scenario15$TEMPERATURE <- scenario15$TEMPERATURE + 1.5
   
-  scenario2 <- survey_df
-  scenario2$TEMPERATURE <- scenario2$TEMPERATURE + 2
   
-  scenario3 <- survey_df
-  scenario3$TEMPERATURE <- scenario3$TEMPERATURE + 3
-  
-  scenario4 <- survey_df
-  scenario4$TEMPERATURE <- scenario4$TEMPERATURE + 4
+  # Kann man raus lassen, thermophiler effekt hier schon deutlich ab erhöhung von temp 1,5°C zu erkennen
+  # scenario2 <- df_r22_filtered
+  # scenario2$TEMPERATURE <- scenario2$TEMPERATURE + 2
+  #
+  # scenario3 <- df_r22_filtered
+  # scenario3$TEMPERATURE <- scenario3$TEMPERATURE + 3
+  #
+  # scenario4 <- df_r22_filtered
+  # scenario4$TEMPERATURE <- scenario4$TEMPERATURE + 4
   
   
   # Hier werden die predictions angehängt
-  survey_df$presence15 <- predict(oat_lm, newdata = scenario15, type="response")
-  survey_df$presence2 <- predict(oat_lm, newdata = scenario2, type="response")
-  survey_df$presence3 <- predict(oat_lm, newdata = scenario3, type="response")
-  survey_df$presence4 <- predict(oat_lm, newdata = scenario4, type="response")
+  df_r22_filtered$presence15 <- ifelse(predict(oat_lm, newdata = scenario15, type = "response") >= 0.5,
+                                       1,
+                                       0)
+  # df_r22_filtered$presence2 <- ifelse(
+  #   predict(oat_lm, newdata = scenario2, type = "response") >= 0.5,
+  #   1, 0
+  # )
+  # df_r22_filtered$presence3 <- ifelse(
+  #   predict(oat_lm, newdata = scenario3, type = "response") >= 0.5,
+  #   1, 0
+  # )
+  # df_r22_filtered$presence4 <- ifelse(
+  #   predict(oat_lm, newdata = scenario4, type = "response") >= 0.5,
+  #   1, 0
+  # )
   
   
-  # Hier werden die Daten nach RS_Site und Year aggregiert.
-  # vorher wird für jedes Taxon pro rs_site gezählt ob es vorkommt oder nicht.
-  per_taxon_bin <- survey_df %>%
-    group_by(RS_SITE, YEAR, TaxonName) %>%
-    summarise(across(all_of(
-      c("Presence","presence15","presence2","presence3","presence4")
-      ), ~ as.integer(any(. > 0))), .groups = "drop")
+  scenarios <- c("presence15")#, "presence2", "presence3", "presence4")
   
   
-  # Anschließend wird das dann pro rs_site aufsummiert
-  richness <- per_taxon_bin %>%
-    group_by(RS_SITE, YEAR) %>%
-    summarise(across(all_of(
-      c("Presence","presence15","presence2","presence3","presence4")
-      ),
-                     ~ sum(.x, na.rm = TRUE),
-                     .names = "Artenzahl_{.col}"),
-              .groups = "drop")
-  
-
-  # Auch hier werden die cov_ werte über alle releve_nr getrennt berechnet um übergewichtung zu vermeiden
-  hdr_per_releve <- survey_df %>%
-    distinct(RS_SITE, YEAR, RELEVE_NR.x, across(all_of(c(
-      "LONGITUDE","LATITUDE","ALTITUDE","SLOPE",
-      names(survey_df)[str_detect(names(survey_df), "^(COV_|TREE_|HERB_|SURF_)")],
-      "TEMPERATURE","PRECIPITATION"
-    ))))
-  
-  # Wir aggregieren für jeden Standort nach Ort die Daten und bilden mittelwerte aus den entsprechenden coverages
-  env_agg <- hdr_per_releve %>%
-    group_by(RS_SITE, YEAR) %>%
-    summarise(
-      LONGITUDE         = first(LONGITUDE),
-      LATITUDE          = first(LATITUDE),
-      across(matches("^(COV_|TREE_|HERB_|SURF_)"), ~ mean(.x)),
-      TEMPERATURE = mean(TEMPERATURE),
-      PRECIPITATION = mean(PRECIPITATION), # Lässt sich nicht gut bisher für codap visualisierung skalieren
-      .groups = "drop"
+  # Kleiner Helper um die Schrittweisen "gains" und "losses" durch die
+  # temp erhöhung zu betrachten
+  check_df <- lapply(scenarios, function(scn) {
+    data.frame(
+      scenario = scn,
+      gain  = sum(df_r22_filtered$Presence == 0 &
+                    df_r22_filtered[[scn]] == 1),
+      loss  = sum(df_r22_filtered$Presence == 1 &
+                    df_r22_filtered[[scn]] == 0),
+      stay_present = sum(df_r22_filtered$Presence == 1 &
+                           df_r22_filtered[[scn]] == 1),
+      stay_absent  = sum(df_r22_filtered$Presence == 0 &
+                           df_r22_filtered[[scn]] == 0)
     )
+  }) %>%
+    bind_rows()
+  
+  scenarios <- c("Presence", "presence15")#, "presence2", "presence3", "presence4")
+  
+  # Hier wird anhand der Presence Spalte dann die Artenzahl pro RS_PLOT berechnet.
+  # Mit n_distinct wird jede Art pro Plot nur einmal gezählt
+  for (scn in scenarios) {
+    new_col <- paste0("Artenzahl_", scn)
+    
+    df_r22_filtered <- df_r22_filtered %>%
+      group_by(RS_PLOT) %>%
+      mutate(!!new_col := n_distinct(TaxonName[.data[[scn]] == 1])) %>%
+      ungroup()
+  }
   
   
-  # Hier wird dann alles in einem DataFrame zusammengefügt
-  agg_site_year <- richness %>%
-    left_join(env_agg, by = c("RS_SITE","YEAR")) %>%
-    arrange(RS_SITE, YEAR) %>%
-    mutate(across(where(is.numeric), ~ round(.x, 2)))
-  
-
+  # Nochmal kleines Aufäumen, hier wird das finale DF mit den zu nutzenden Spalten für codap erzeugt
+  df_r22_filtered <- df_r22_filtered %>%
+    mutate(TEMPERATURE15 = TEMPERATURE + 1.5) %>%
+    select(
+      TaxonName,
+      RS_SITE,
+      RS_PLOT,
+      RELEVE_NR.x,
+      LONGITUDE,
+      LATITUDE,
+      YEAR,
+      COV_HERBS,
+      COV_LITTER,
+      COV_MOSSES,
+      TEMPERATURE,
+      TEMPERATURE15,
+      PRECIPITATION,
+      Presence,
+      presence15,
+      Artenzahl_Presence,
+      Artenzahl_presence15
+    )
   
   log_dir <- path("logs", "Glatthafer")
   log_file <- path(log_dir, "aggregated.log")
   
-  describe_df(df = agg_site_year,log_dir = log_dir, log_file = log_file)
+  describe_df(df = df_r22_filtered,
+              log_dir = log_dir,
+              log_file = log_file)
   
-
+  
   # Speichern des Datensatzes
-  # TODO Werte von Temparatur und Niederschlag noch an die Skala für die CODAP webapp anpassen
-  # TODO Artenzahl noch richtig runden
   tmp_dir <- path("tmp_data", "Glatthafer")
   dir_create(tmp_dir, recurse = TRUE)
   tmp_data_file <- path(tmp_dir, "Glatthafer.csv")
   
   
-  # Dieser Datensatz ist schonmal in CODAP kopierbar. 
-  write.csv(agg_site_year, file = tmp_data_file, row.names = FALSE)
- 
-   
+  # Dieser Datensatz ist schonmal in CODAP kopierbar.
+  write.csv(df_r22_filtered, file = tmp_data_file, row.names = FALSE)
+  
+  
   invisible(TRUE)
 }
 
