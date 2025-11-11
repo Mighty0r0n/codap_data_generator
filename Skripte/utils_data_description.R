@@ -354,9 +354,8 @@ add_glm_predictions <- function(df, feature_list){
 add_growth_form <- function(df){
   
   
-  # Ich brauche saubere TaxonNames um API Anfragen durchführen zu können.
-  # Dh keine agg.'s aff.'s etc
-  # Wenn ich die Habe kann ich eigentlich relativ sauber die Wuchsform in unseren Datensatz rüber mappen
+
+  # TODO: Layer zu relevee anschauen
   unique_taxons <- unique(df$TaxonName)
   
 
