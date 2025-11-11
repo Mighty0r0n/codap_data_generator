@@ -21,6 +21,8 @@ generate_eunis_data <- function(eunis_code_list, write_tmp_file) {
   for (eunis_code in eunis_code_list){
     eunis_code_df <- survey_df %>% filter(EUNIS == eunis_code)
     
+    
+    # Manche Eunis-codes existieren nicht in ReSurveyGermany
     if (length(eunis_code_df) == 0) {
       return(cat("File does not contain any entries"))
     }
@@ -51,8 +53,14 @@ generate_eunis_data <- function(eunis_code_list, write_tmp_file) {
     )
 
     
+    # Ich nehme erstmal die ersten paar Einträge jeder Datei
+    # Die Zahl ist so gewählt, dass die enddatei etwas knapp unter 5000 Einträgen bleibt.
     eunis_code_df <- head(eunis_code_df, 1300) %>%
       mutate(TEMPERATURE15 = TEMPERATURE + 1.5)
+    
+    
+    
+    eunis_code_df <- add_growth_form(df = eunis_code_df)
     
     # Speichern des Datensatzes
     tmp_dir <- path("tmp_data", "EUNIS")
@@ -112,6 +120,8 @@ generate_eunis_data <- function(eunis_code_list, write_tmp_file) {
 eunis_code_list = c("T17", "T18", "R22", "V11", "V15")
 
   
+
+# write_tmp_file = TRUE wenn einzeldatensätze zu den einzelnen EUNIS Flächen mitgeneriert werden sollen. Diese landen im tmp_data ordner
 tmp_eunis_code_df = generate_eunis_data(
   eunis_code = eunis_code_list,
   write_tmp_file = TRUE
