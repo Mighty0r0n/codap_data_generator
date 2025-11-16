@@ -13,9 +13,9 @@ source("Skripte/utils_data_description.R")
 
 generate_eunis_data <- function(eunis_code_list, write_tmp_file) {
   # Hier wird sich die Grund-Datei geholt
-  # survey_df <- merge_re_survey_with_dwd_grids()
+  survey_df <- merge_re_survey_with_dwd_grids()
   
-  survey_df <- read_csv("tmp_data/ReSurveyGermany/re_survey_germany_filtered_years.csv")
+  # survey_df <- read_csv("tmp_data/ReSurveyGermany/re_survey_germany_filtered_years.csv")
   
   # Sind wenige Einträge und enthält wenig zeigbares
   survey_df <- survey_df %>% filter(LAYER != 0,
