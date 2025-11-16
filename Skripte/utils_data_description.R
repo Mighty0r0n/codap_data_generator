@@ -162,14 +162,8 @@ merge_re_survey_with_dwd_grids <- function() {
   
   columns_to_remove <- c(
     "PROJECT_ID.x",
-    #"RELEVE_NR.x",
-    #"PROJECT_ID_RELEVE_NR",
-    #"RS_PROJECT",
     "PROJECT_ID.y",
-    #"RS_PLOT",
     "LOCALITY",
-    #"RS_OBSERV",
-    #"RELEVE_NR.y",
     "DATE",
     "LOC_METH_COMMENT",
     "COUNTRY",
@@ -277,93 +271,58 @@ filter_low_density_plots <- function(df,
 }
 
 
-add_glm_predictions <- function(df, feature_list){
-  
-  # # Hier werden die zu überprüfenden Spalten ausgewählt
-  # cov_vars <- eunis_code_df %>%
-  #   select(predictors)
-  # 
-  # # Korrelationen überprüfen
-  # cor_matrix <- cor(cov_vars, use = "complete.obs")
-  
-  # Threshold für presence/absence nach https://doi.org/10.5281/zenodo.16895007 auf 1% gesetzt
-  df <- df %>%
-    mutate(Presence = if_else(Cover_Perc >= 1, 1, 0))
-  
-  eunis_lm <- glm(
-    formula = as.formula(
-      paste("Presence ~", paste(feature_list, collapse = " + "))
-    ),
-    data = df,
-    family = binomial(link = "logit"),
-    control = glm.control(maxit = 100)
-  )
-  
-  # Für jedes Scenario ein Datensatz für die Vorhersage durchs lm erzeugen
-  scenario15 <- df
-  scenario15$TEMPERATURE <- scenario15$TEMPERATURE + 1.5
-  
-  # Hier werden die predictions angehängt
-  df$presence15 <- ifelse(
-    predict(eunis_lm, newdata = scenario15, type = "response") >= 0.5,
-                                     1,
-                                     0
-    )
-
-  scenarios <- c("presence15")#, "presence2", "presence3", "presence4")
-  
-  
-  # Kleiner Helper um die Schrittweisen "gains" und "losses" durch die
-  # temp erhöhung zu betrachten
-  check_df <- lapply(scenarios, function(scn) {
-    data.frame(
-      scenario = scn,
-      gain  = sum(df$Presence == 0 &
-                    df[[scn]] == 1),
-      loss  = sum(df$Presence == 1 &
-                    df[[scn]] == 0),
-      stay_present = sum(df$Presence == 1 &
-                           df[[scn]] == 1),
-      stay_absent  = sum(df$Presence == 0 &
-                           df[[scn]] == 0)
-    )
-  }) %>%
-    bind_rows()
-  
-
-  
-  scenarios <- c("Presence", "presence15")#, "presence2", "presence3", "presence4")
-  
-  
-  # Hier wird anhand der Presence Spalte dann die Artenzahl pro RS_PLOT berechnet.
-  # Mit n_distinct wird jede Art pro Plot nur einmal gezählt
-  for (scn in scenarios) {
-    new_col <- paste0("Artenzahl_", scn)
-    
-    df <- df %>%
-      group_by(RS_PLOT) %>%
-      mutate(!!new_col := n_distinct(TaxonName[.data[[scn]] == 1])) %>%
-      ungroup()
-  }
-  
-  return(df)
-}
-
-
-
 add_growth_form <- function(df){
+  traits_raw <- BIEN_trait_species(unique(df$Taxon_clean))
   
+  growth_form_raw <- traits_raw %>%
+    filter(trait_name == "whole plant growth form") %>%
+    mutate(
+      gf_raw = trait_value |>
+        tolower() |>
+        trimws() |>
+        gsub("\\*$", "", x = _)
+    ) %>%
+    filter(
+      !is.na(gf_raw),
+      !gf_raw %in% c("3", "4", "neophyte", "woody")
+    )
+  
+  growth_form_per_species <- growth_form_raw %>%
+    group_by(scrubbed_species_binomial) %>%
+    count(gf_raw, sort = TRUE) %>%
+    slice_max(n, with_ties = FALSE) %>%
+    ungroup() %>%
+    transmute(
+      Taxon_clean = scrubbed_species_binomial,
+      growth_form_raw = gf_raw
+    )
   
 
-  # TODO: Layer zu relevee anschauen
-  unique_taxons <- unique(df$TaxonName)
-  
 
-
+  df_out <- df %>%
+    left_join(growth_form_per_species, by = "Taxon_clean") %>%
+    mutate(
+      Wuchsform = case_when(
+        growth_form_raw %in% c("tree") ~ "Baum",
+        growth_form_raw %in% c("shrub", "subshrub") ~ "Strauch",
+        growth_form_raw %in% c("grass", "graminoid", "aquatic sedge", "sedge") ~ "Gras",
+        growth_form_raw %in% c(
+          "herb", "forb", "hemicryptophyte", "woody herb",
+          "rosette", "creeper", "moss", "fern"
+        ) ~ "Kraut",
+        growth_form_raw %in% c(
+          "climber", "herbaceous climber", "woody climber",
+          "vine", "woody vine", "climbing legume", "liana"
+        ) ~ "Kletterpflanze",
+        TRUE ~ NA_character_
+      )
+    )
+  df_out <- df_out %>% filter(!is.na(Wuchsform))
   
   
   
   
-  return(df)
+  
+  return(df_out)
 }
 
