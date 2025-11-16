@@ -117,7 +117,7 @@ generate_eunis_data <- function(eunis_code_list, write_tmp_file) {
     type    = "response"
   )
   
-  # Hier filtern wir aus der Predictionmatrix anhand der rs_plot, year und taxon keys den entsprechenden Presence Wert
+  
   pred_df <- pred_plus15 %>%
     as.data.frame() %>%
     { setNames(., gsub("\\.", " ", names(.))) } %>%
@@ -284,8 +284,8 @@ tmp_eunis_code_df = generate_eunis_data(
 #   message("Anzahl Einträge: ", nrow(df))
 # }
 
-# Anzahl Einträge: 14438
-# Anzahl Einträge: 1660
-# Anzahl Einträge: 17776
-# Anzahl Einträge: 517
-# Anzahl Einträge: 426
+# Anzahl Einträge: 12813 T17
+# Anzahl Einträge: 1595 T18
+# Anzahl Einträge: 16748 R22
+# Anzahl Einträge: 472 V11
+# Anzahl Einträge: 380 V15
