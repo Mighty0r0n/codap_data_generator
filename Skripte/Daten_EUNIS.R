@@ -198,7 +198,7 @@ generate_eunis_data <- function(eunis_code_list, write_tmp_file) {
     if (write_tmp_file) {
     
     # Dieser Datensatz ist schonmal in CODAP kopierbar.
-    write.csv(eunis_code_df, file = tmp_data_file, row.names = FALSE)
+    write.csv(head(eunis_code_df, 4900), file = tmp_data_file, row.names = FALSE)
     }
     
     # Ich nehme erstmal die ersten paar Einträge jeder Datei
