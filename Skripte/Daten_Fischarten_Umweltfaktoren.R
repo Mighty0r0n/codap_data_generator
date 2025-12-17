@@ -8,8 +8,6 @@ suppressPackageStartupMessages({
   library(lubridate)
   library(sf)
   library(dbscan)
-  library(DataExplorer)
-  library(patchwork)
   library(ggplot2)
 })
 
