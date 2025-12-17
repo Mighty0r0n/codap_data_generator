@@ -2,6 +2,9 @@
 # zu excludieren. Dies wird gemacht um zu vermeiden das zu große Dateien in die Repositorys
 # gepushed werden. Erzeugt Datenmüll.
 
+# SQL
+
+*.sqlite
 
 # R
 .Rhistory
