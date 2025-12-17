@@ -8,12 +8,15 @@ suppressPackageStartupMessages({
   library(lubridate)
   library(sf)
   library(dbscan)
+  library(DataExplorer)
+  library(patchwork)
+  library(ggplot2)
 })
 
 source("Skripte/utils_data_description.R")
 
 
-add_water_data <- function(df) {
+add_water_data_xlsx <- function(df) {
   water_path <- path("raw_data", "Gewässer")
   
   water_file <- path(water_path, "Gewässerdaten_Datenanfrage_UBA.xlsx")
@@ -44,6 +47,95 @@ add_water_data <- function(df) {
   
   return(df)
 }
+
+
+
+add_water_data <- function(df) {
+  
+  
+  
+  water_path <- path("raw_data", "Gewässer")
+  
+  water_file <- path(water_path, "waterbase.csv")
+  
+  water_df <- read_csv(water_file)
+  
+  
+  # als sf (WGS84)
+  fish_sf <- st_as_sf(df, coords = c("Longitude", "Latitude"), crs = 4326, remove = FALSE)
+  water_sf <- st_as_sf(water_df, coords = c("Longitude", "Latitude"), crs = 4326, remove = FALSE)
+  
+  # in metrisches CRS für Distanzen
+  fish_sf  <- st_transform(fish_sf, 3035)
+  water_sf <- st_transform(water_sf, 3035)
+  
+  # pro Jahr matchen
+  years <- sort(unique(fish_sf$year))
+  
+  out_list <- lapply(years, function(y) {
+    fish_y  <- fish_sf  %>% filter(year == y)
+    water_y <- water_sf %>% filter(year == y)
+    
+    if (nrow(water_y) == 0) {
+
+      fish_tbl <- st_drop_geometry(fish_y) %>%
+        rename(
+          Messung_Longitude = Longitude,
+          Messung_Latitude  = Latitude,
+          Messung_Jahr      = year
+        )
+      fish_tbl$water_dist_m <- NA_real_
+      return(fish_tbl)
+      
+      
+    }
+    
+    idx <- st_nearest_feature(fish_y, water_y)
+    
+    # Distanz zur gematchten Station
+    fish_y$water_dist_m <- as.numeric(st_distance(fish_y, water_y[idx, ], by_element = TRUE))
+    
+    # Wasser-Features dranhängen
+    water_feats <- water_y[idx, ] 
+    
+    
+
+    fish_tbl <- st_drop_geometry(fish_y) %>%
+      rename(
+        Messung_Longitude = Longitude,
+        Messung_Latitude  = Latitude,
+        Messung_Jahr      = year
+      )
+    
+    water_tbl <- st_drop_geometry(water_y[idx, ]) %>%
+      rename(
+        Messstelle_Longitude = Longitude,
+        Messstelle_Latitude  = Latitude,
+        Messstelle_Jahr      = year
+      )
+    
+    
+    bind_cols(fish_tbl, water_tbl)
+  })
+  
+
+  
+  
+  
+  
+  df <- bind_rows(out_list)
+  df <- df %>%
+    filter(!is.na(Messstelle_Longitude))
+  
+
+  
+  
+  return(df)
+}
+
+
+
+
 
 # Das ganze wird als Funktion definiert, um zu Verhindern dass wir zu viele
 # Globale Variablen erzeugen. Globale Variablen sind zu jeder Zeit der Laufzeit
@@ -113,7 +205,10 @@ generate_fish_env_data <- function() {
   # Hier werden alle Spalten die ausschließlich NA's enthalten und weitere unintressante Spalten gefiltert
   fish_reduced <- fish_occurrence_df %>%
     select(where(~ !all(is.na(.))), -all_of(col_to_drop)) %>%
-    drop_na()
+    drop_na() #%>%
+    #filter(habitat == "See")
+  
+
   
   # Hier wird gefiltert und der Datensatz fürs mapping vorbereitet
   fish_handler <- fish_reduced %>%
@@ -181,8 +276,24 @@ generate_fish_env_data <- function() {
   # WIP Hier können dann die Gewässerdaten hinzugefügt werden
   df <- add_water_data(df = species_site_year)
   
+  out_dir  <- "result_data/gewässer"
+  out_file <- file.path(out_dir, "Süßwasserfische.csv")
+  dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+  
+  write.csv(df, out_file, row.names = FALSE)
+  #DataExplorer::create_report(df)
   
   
+  water_vars <- c("Nitrate","Ammonium","Phosphate","Total phosphorus",
+                  "pH","Water temperature","Dissolved oxygen")
+  
+  plots <- lapply(water_vars, function(v) {
+    ggplot(df, aes(x = Gesamt_Spezies, y = .data[[v]])) +
+      geom_point(alpha = 0.4, position = position_jitter(width = 0.15, height = 0)) +
+      geom_smooth(method = "loess", se = FALSE) +
+      labs(y = v)
+  })
+
   # Datensätze die man später evtl benutzen könnte
   
   see_df <- fish_reduced %>%
