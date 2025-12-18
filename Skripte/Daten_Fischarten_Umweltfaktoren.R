@@ -74,19 +74,10 @@ add_water_data <- function(df) {
     fish_y  <- fish_sf  %>% filter(year == y)
     water_y <- water_sf %>% filter(year == y)
     
-    if (nrow(water_y) == 0) {
+    
+    # Wenn keine Messung in dem Jahr an der Messstelle stattfand, werden die Daten entfernt
+    if (nrow(water_y) == 0) return(NULL)
 
-      fish_tbl <- st_drop_geometry(fish_y) %>%
-        rename(
-          Messung_Longitude = Longitude,
-          Messung_Latitude  = Latitude,
-          Messung_Jahr      = year
-        )
-      fish_tbl$water_dist_m <- NA_real_
-      return(fish_tbl)
-      
-      
-    }
     
     idx <- st_nearest_feature(fish_y, water_y)
     
@@ -100,8 +91,8 @@ add_water_data <- function(df) {
 
     fish_tbl <- st_drop_geometry(fish_y) %>%
       rename(
-        Messung_Longitude = Longitude,
-        Messung_Latitude  = Latitude,
+        LONGITUDE = Longitude,
+        LATITUDE  = Latitude,
         Messung_Jahr      = year
       )
     
@@ -122,8 +113,12 @@ add_water_data <- function(df) {
   
   
   df <- bind_rows(out_list)
+  
+  # Erst filtern bevor die Messstellen Koordinaten raus gehen, Einigen Messungen konnten keine Gewässermessungen
+  # zugefügt werden, so werden die rausgeschmissen
   df <- df %>%
-    filter(!is.na(Messstelle_Longitude))
+    filter(!is.na(Messstelle_Longitude)) %>%
+    select(-Messstelle_Latitude, -Messstelle_Longitude)
   
 
   
@@ -274,9 +269,29 @@ generate_fish_env_data <- function() {
   # WIP Hier können dann die Gewässerdaten hinzugefügt werden
   df <- add_water_data(df = species_site_year)
   
+  
+  df <- df %>%
+    select(-site_id...1, -Messstelle_Jahr) %>%
+    rename( Messstelle_ID = site_id...13,
+            `Ammonium [mg/L]`             = Ammonium,
+            `Gelöster Sauerstoff [mg/L]`  = `Dissolved oxygen`,
+            `Nitrat [mg/L]`               = Nitrate,
+            `Phosphat [mg/L]`             = Phosphate,
+            `Wassertemperatur [°C]`       = `Water temperature`,
+            `Gesamtphosphor [mg/L]`       = `Total phosphorus`,
+            `Distanz Messstelle [m]`      = water_dist_m
+           )
+  
   out_dir  <- "result_data/gewässer"
   out_file <- file.path(out_dir, "Süßwasserfische.csv")
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+  
+  
+  
+  # Placeholder wegen codap zeilen limit
+  #df <- df %>% slice_sample(n = 4900)
+  
+  
   
   write.csv(df, out_file, row.names = FALSE)
   #DataExplorer::create_report(df)
