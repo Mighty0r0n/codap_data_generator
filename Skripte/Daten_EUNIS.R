@@ -14,23 +14,31 @@ source("Skripte/utils_data_description.R")
 
 generate_eunis_data <- function(eunis_code_list, write_tmp_file) {
   # Hier wird sich die Grund-Datei geholt
-  #survey_df <- merge_re_survey_with_dwd_grids()
+  survey_df <- merge_re_survey_with_dwd_grids()
   
   # Debugzeile
-  survey_df <- read_csv("tmp_data/ReSurveyGermany/re_survey_germany_filtered_years.csv")
+  #survey_df <- read_csv("tmp_data/ReSurveyGermany/re_survey_germany_filtered_years.csv")
   
-  # Vorbereiten der Bodendaten
+  
+  ######################################################################################
+  # --------------------------------------SOIL------------------------------------------
+  
+  # 1. Vorbereiten der Bodendaten
   soil_df <- read_csv2("raw_data/Bodendaten/Bodendaten_Abfrage_UBA.csv") %>%
-    filter(`Bodenmesswert - Oberkante [cm]` > 0,
-           `Bodenmesswert - Unterkante [cm]` <= 30,
-           stringr::str_count(
-             as.character(`Bodenmesswert - Messwert`), ","  # Komische Einträge entfernen
-           ) <= 1
+    filter(
+      `Bodenmesswert - Oberkante [cm]` > 0,
+      `Bodenmesswert - Unterkante [cm]` <= 30,
+      stringr::str_count(
+        as.character(`Bodenmesswert - Messwert`),
+        ","  # Komische Einträge entfernen
+      ) <= 1
     ) %>%
     select(-`Messung - Probenahmedatum`) %>%
     mutate(
-      `Bodenmesswert - Messwert` = as.numeric(sub(",", ".", `Bodenmesswert - Messwert`)),  # Einfacher Datatype cast
-      `Parameter - Messgröße` = ifelse( # angleichen der pH-Spalte
+      `Bodenmesswert - Messwert` = as.numeric(sub(",", ".", `Bodenmesswert - Messwert`)),
+      # Einfacher Datatype cast
+      `Parameter - Messgröße` = ifelse(
+        # angleichen der pH-Spalte
         `Parameter - Messgröße` == "pH",
         "pH-Wert",
         `Parameter - Messgröße`
@@ -39,67 +47,74 @@ generate_eunis_data <- function(eunis_code_list, write_tmp_file) {
         `Parameter - Messgröße` == "pH-Wert",
         "ohne",
         `Parameter - Einheit`
+      ),
+      `Bodenmesswert - Messwert` = dplyr::case_when(
+        `Parameter - Messgröße` == "pH-Wert" &
+          `Bodenmesswert - Messwert` > 14 ~ `Bodenmesswert - Messwert` / 100,
+        TRUE ~ `Bodenmesswert - Messwert`
       )
     ) %>%
-    group_by(`Messstellennummer`, `Parameter - Messgröße`) %>% 
-    summarise( # Gruppieren nach Messstellennummer und Messgröße
+    group_by(`Messstellennummer`, `Parameter - Messgröße`) %>%
+    summarise(
+      # Gruppieren nach Messstellennummer und Messgröße
       value = median(`Bodenmesswert - Messwert`, na.rm = TRUE),
       latitude  = first(Latitude),
       longitude = first(Longitude),
       n = n(),
       .groups = "drop"
     ) %>%
-    pivot_wider( # long to wide formatierung
+    pivot_wider(
+      # long to wide formatierung
       id_cols = c(`Messstellennummer`, latitude, longitude),
       names_from  = `Parameter - Messgröße`,
       values_from = value
-    )
+    ) %>% # komische Formatierungen entfernen
+    mutate(`pH-Wert` = ifelse(`pH-Wert` <= 0 |
+                                `pH-Wert` > 14, NA, `pH-Wert`))
   
   
   # Nur ein kleiner check um zu sehen, wieviele Parameter pro Messstelle bemessen worden sind
   coverage <- soil_df %>%
-    summarise(across(-c(`Messstellennummer`, latitude, longitude),
-                     ~ mean(!is.na(.)))) %>%
+    summarise(across(
+      -c(`Messstellennummer`, latitude, longitude),
+      ~ mean(!is.na(.))
+    )) %>%
     pivot_longer(everything(), names_to = "messgroesse", values_to = "share_present") %>%
     arrange(share_present)
   
-
-  survey_df <- survey_df %>% filter(LAYER != 0,
-                                    EUNIS %in% eunis_code_list)
+  #####################################################################################
+  # 2. Survey Data vorbereiten
   
-  survey_df <- survey_df %>% 
-    mutate(Taxon_clean = TaxonName |> 
-             # alles ab " agg.", " sect.", " x", " ×" wegschneiden
-             gsub(" agg\\..*$", "", x = _) |>
-             gsub(" sect\\..*$", "", x = _) |>
-             gsub(" x .*$", "", x = _)     |>
-             gsub(" × .*$", "", x = _)     |>
-             gsub(" x .*$", "", x = _)  |>
-             gsub(" ×.*$", "", x = _)   |>
-             trimws()
+  survey_df <- survey_df %>% filter(EUNIS %in% eunis_code_list)
+  
+  survey_df <- survey_df %>%
+    mutate(
+      Taxon_clean = TaxonName |>
+        # alles ab " agg.", " sect.", " x", " ×" wegschneiden
+        gsub(" agg\\..*$", "", x = _) |>
+        gsub(" sect\\..*$", "", x = _) |>
+        gsub(" x .*$", "", x = _)     |>
+        gsub(" × .*$", "", x = _)     |>
+        gsub(" x .*$", "", x = _)  |>
+        gsub(" ×.*$", "", x = _)   |>
+        trimws()
     ) %>%
-    filter(
-      !is.na(Taxon_clean),
-      grepl("^[A-Za-z]{2,}\\s+[A-Za-z]{2,}", Taxon_clean)
-    )
+    filter(!is.na(Taxon_clean),
+           grepl("^[A-Za-z]{2,}\\s+[A-Za-z]{2,}", Taxon_clean))
   survey_df <- survey_df %>%
     mutate(across(
       matches("^(COV_|TREE_|HERB_|SHRUB_|SURF_)"),
       ~ replace_na(.x, 0)
     ))
   
-  
+  #####################################################################################
+  # 3. Modell befüllen
   
   # Presence/Absence Matrix
   survey_pa_long <- survey_df %>%
-    mutate(
-      Presence = if_else(Cover_Perc >= 0.1, 1L, 0L)  # Threshold kannst du bei Bedarf justieren
-    ) %>%
+    mutate(Presence = if_else(Cover_Perc >= 0.1, 1L, 0L)) %>%
     group_by(RS_PLOT, YEAR, Taxon_clean) %>%
-    summarise(
-      Presence = as.integer(any(Presence == 1L)),  # wenn Taxon irgendwo im Plot/Jahr ≥0.1%, dann 1
-      .groups = "drop"
-    )
+    summarise(Presence = as.integer(any(Presence == 1L)), .groups = "drop")
   
   # Matrix drehen um die Taxa in die Spalten zu kriegen
   Y <- survey_pa_long %>%
@@ -115,15 +130,13 @@ generate_eunis_data <- function(eunis_code_list, write_tmp_file) {
   env_df <- survey_df %>%
     group_by(RS_PLOT, YEAR) %>%
     summarise(
-      TEMPERATURE       = first(TEMPERATURE),     
-      PRECIPITATION     = first(PRECIPITATION),    
-      COV_TOTAL         = mean(COV_TOTAL), 
-      EUNIS             = first(EUNIS),                  
+      TEMPERATURE       = first(TEMPERATURE),
+      PRECIPITATION     = first(PRECIPITATION),
+      COV_TOTAL         = mean(COV_TOTAL),
+      EUNIS             = first(EUNIS),
       .groups = "drop"
     ) %>%
-    mutate(
-      EUNIS = factor(EUNIS)
-    )
+    mutate(EUNIS = factor(EUNIS))
   
   # Features und P/A matrix kombiniert
   glm_data <- Y %>%
@@ -132,14 +145,12 @@ generate_eunis_data <- function(eunis_code_list, write_tmp_file) {
   
   # für das manyglm passende format
   species_mat <- glm_data %>%
-    select(
-      -RS_PLOT,
-      -YEAR,
-      -TEMPERATURE,
-      -PRECIPITATION,
-      -COV_TOTAL,
-      -EUNIS
-    ) %>%
+    select(-RS_PLOT,
+           -YEAR,
+           -TEMPERATURE,
+           -PRECIPITATION,
+           -COV_TOTAL,
+           -EUNIS) %>%
     as.matrix()
   
   # manyglm format werden nun die prediktoren hinzugefügt
@@ -150,47 +161,40 @@ generate_eunis_data <- function(eunis_code_list, write_tmp_file) {
     data   = glm_data,
     family = "binomial"
   )
-
+  
   
   # Hier wird eine Prediction Matrix erzeugt
   newdata_plus15 <- glm_data %>%
     mutate(TEMPERATURE = TEMPERATURE + 1.5)
   
-  
-  pred_plus15 <- predict(
-    fit_full,
-    newdata = newdata_plus15,
-    type    = "response"
-  )
+  #####################################################################################
+  # 4. Predictions
+  pred_plus15 <- predict(fit_full, newdata = newdata_plus15, type    = "response")
   
   
   pred_df <- pred_plus15 %>%
     as.data.frame() %>%
-    { setNames(., gsub("\\.", " ", names(.))) } %>%
-    mutate(
-      RS_PLOT = glm_data$RS_PLOT,
-      YEAR    = glm_data$YEAR
-    ) %>%
+    {
+      setNames(., gsub("\\.", " ", names(.)))
+    } %>%
+    mutate(RS_PLOT      = glm_data$RS_PLOT, YEAR         = glm_data$YEAR) %>%
     pivot_longer(
       cols = -c(RS_PLOT, YEAR),
       names_to = "Taxon_clean",
       values_to = "Pred_prob_plus15"
     ) %>%
-    mutate(
-      Presence15 = as.integer(Pred_prob_plus15 >= 0.5)
-    ) %>%
+    mutate(Presence15 = as.integer(Pred_prob_plus15 >= 0.5)) %>%
     select(-Pred_prob_plus15)
+  
   
   
   survey_df_pred <- survey_df %>%
     left_join(
       pred_df %>%
-        select(RS_PLOT, YEAR, Taxon_clean, Presence15), 
+        select(RS_PLOT, YEAR, Taxon_clean, Presence15),
       by = c("RS_PLOT", "YEAR", "Taxon_clean")
     ) %>%
-    mutate(
-      Presence = as.integer(Cover_Perc >= 0.1)
-    )  %>%
+    mutate(Presence = as.integer(Cover_Perc >= 0.1))  %>%
     drop_na(Presence15)
   
   survey_df_pred <- add_growth_form(df = survey_df_pred)
@@ -198,13 +202,9 @@ generate_eunis_data <- function(eunis_code_list, write_tmp_file) {
   combined_eunis_df = tibble()
   
   #-----------------------------------------------------------------------------
-  # Hier werden einige Filterebenen auf den einzelnen Eunis code dfs durchgeführt um rechenzeit zu sparen.
-  for (eunis_code in eunis_code_list){
-    eunis_code_df <- survey_df_pred %>% 
-      filter(EUNIS == eunis_code) 
-    
-
-     
+  for (eunis_code in c("R22")) {
+    eunis_code_df <- survey_df_pred %>%
+      filter(EUNIS == eunis_code)
     
     
     
@@ -213,24 +213,39 @@ generate_eunis_data <- function(eunis_code_list, write_tmp_file) {
       return(cat("File does not contain any entries for this EUNIS-Code"))
     }
     
-
+    
     scenarios <- c("Presence", "Presence15")#, "presence2", "presence3", "presence4")
     
-
+    eunis_code_df <- eunis_code_df %>%
+      mutate(obs_id = paste(RS_PROJECT, RELEVE_NR.y, sep = ":"))
+    
     for (scn in scenarios) {
       new_col <- paste0("Artenzahl_", scn)
       
+      
+      monitor_counts <- eunis_code_df %>%
+        group_by(RS_PLOT, YEAR, obs_id) %>%
+        summarise(Artenzahl_monitor = n_distinct(TaxonName[.data[[scn]] == 1]),
+                  .groups = "drop")
+      
+      
+      year_mean <- monitor_counts %>%
+        group_by(RS_PLOT, YEAR) %>%
+        summarise(!!new_col := mean(Artenzahl_monitor), .groups = "drop")
+      
+      
       eunis_code_df <- eunis_code_df %>%
-        group_by(RS_PLOT) %>%
-        mutate(!!new_col := n_distinct(TaxonName[.data[[scn]] == 1])) %>%
-        ungroup()
+        left_join(year_mean, by = c("RS_PLOT", "YEAR"))
     }
+    
+    eunis_code_df <- eunis_code_df %>% select(-obs_id)
+    
     
     # T18 hätte eine angenehme Datenmenge, T17 hat einige Datenpunkte, da müsste ich viel wegfiltern
     # T19 hat fast keine datenpunkte- weg
     # Für T18 wird hier erstmal nichts gefiltert
     
-
+    
     tmp_dir <- path("tmp_data", "EUNIS")
     dir_create(tmp_dir, recurse = TRUE)
     
@@ -238,11 +253,12 @@ generate_eunis_data <- function(eunis_code_list, write_tmp_file) {
     tmp_data_file <- path(tmp_dir, eunis_file_name)
     message("Anzahl Einträge: ", nrow(eunis_code_df), " ", eunis_code)
     
-
-    if (write_tmp_file) {
     
-    # Dieser Datensatz ist schonmal in CODAP kopierbar.
-    write.csv(head(eunis_code_df, 4900), file = tmp_data_file, row.names = FALSE)
+    if (write_tmp_file) {
+      # Dieser Datensatz ist schonmal in CODAP kopierbar.
+      write.csv(head(eunis_code_df, 4900),
+                file = tmp_data_file,
+                row.names = FALSE)
     }
     
     # Ich nehme erstmal die ersten paar Einträge jeder Datei
@@ -257,7 +273,7 @@ generate_eunis_data <- function(eunis_code_list, write_tmp_file) {
     combined_eunis_df <- bind_rows(combined_eunis_df, eunis_code_df)
   }
   
-
+  
   combined_eunis_df <- combined_eunis_df %>%
     mutate(
       Layer = case_when(
@@ -271,7 +287,7 @@ generate_eunis_data <- function(eunis_code_list, write_tmp_file) {
         LAYER == 9 ~ "Moosschicht",
         TRUE ~ NA_character_
       )
-    ) 
+    )
   
   
   # Nochmal kleines Aufäumen, hier wird das finale DF mit den zu nutzenden Spalten für codap erzeugt
@@ -280,6 +296,7 @@ generate_eunis_data <- function(eunis_code_list, write_tmp_file) {
       TaxonName,
       RS_SITE,
       RS_PLOT,
+      RS_PROJECT,
       RELEVE_NR.x,
       EUNIS,
       LONGITUDE,
@@ -303,8 +320,8 @@ generate_eunis_data <- function(eunis_code_list, write_tmp_file) {
       Artenzahl_Presence15
     )
   
-
-
+  
+  
   
   soil_df <- soil_df %>%
     filter(!is.na(latitude), !is.na(longitude)) %>%
@@ -320,7 +337,8 @@ generate_eunis_data <- function(eunis_code_list, write_tmp_file) {
       lon_1e8 = longitude / 1e8,
       
       latitude = dplyr::case_when(
-        latitude >= 45 & latitude <= 55 ~ latitude,   # schon Grad
+        latitude >= 45 & latitude <= 55 ~ latitude,
+        # schon Grad
         lat_1e8  >= 45 & lat_1e8  <= 55 ~ lat_1e8,
         lat_1e7  >= 45 & lat_1e7  <= 55 ~ lat_1e7,
         lat_1e6  >= 45 & lat_1e6  <= 55 ~ lat_1e6,
@@ -328,7 +346,8 @@ generate_eunis_data <- function(eunis_code_list, write_tmp_file) {
       ),
       
       longitude = dplyr::case_when(
-        longitude >= 5 & longitude <= 16 ~ longitude, # schon Grad
+        longitude >= 5 & longitude <= 16 ~ longitude,
+        # schon Grad
         lon_1e8   >= 5 & lon_1e8   <= 16 ~ lon_1e8,
         lon_1e7   >= 5 & lon_1e7   <= 16 ~ lon_1e7,
         lon_1e6   >= 5 & lon_1e6   <= 16 ~ lon_1e6,
@@ -341,10 +360,18 @@ generate_eunis_data <- function(eunis_code_list, write_tmp_file) {
   
   
   soil_sf <- soil_df %>%
-    st_as_sf(coords = c("longitude", "latitude"), crs = 4326, remove = FALSE)
+    st_as_sf(
+      coords = c("longitude", "latitude"),
+      crs = 4326,
+      remove = FALSE
+    )
   
   eunis_sf <- combined_eunis_df %>%
-    st_as_sf(coords = c("LONGITUDE", "LATITUDE"), crs = 4326, remove = FALSE)
+    st_as_sf(
+      coords = c("LONGITUDE", "LATITUDE"),
+      crs = 4326,
+      remove = FALSE
+    )
   
   
   soil_m  <- st_transform(soil_sf, 3035)
@@ -362,23 +389,21 @@ generate_eunis_data <- function(eunis_code_list, write_tmp_file) {
   
   eunis_out <- eunis_m %>%
     st_drop_geometry() %>%
-    mutate(
-      soil_row_id = soil_attr$soil_row_id[nearest_idx],
-      Entfernung_Messstelle = dist_m
-    ) %>%
+    mutate(soil_row_id = soil_attr$soil_row_id[nearest_idx],
+           Entfernung_Messstelle = dist_m) %>%
     left_join(soil_attr, by = "soil_row_id")
   
   
   eunis_out <- eunis_out %>%
-    filter(Entfernung_Messstelle < 10000) %>% # Erstmal filtere ich nach einer entfernung von 10km der Messstelle zur RS_Site, variabel anpassbar
-    select(
-      -soil_row_id,
-      -Messstellennummer,
-      -latitude,
-      -longitude,
-    ) %>%
-    rename(
-      Releve_Nr = RELEVE_NR.x
+    filter(Entfernung_Messstelle < 5000) %>% # Erstmal filtere ich nach einer entfernung von 10km der Messstelle zur RS_Site, variabel anpassbar
+    mutate(Releve_Nr = paste(RS_PROJECT, RELEVE_NR.x, sep = ":")) %>%
+    select(-soil_row_id,
+           -Messstellennummer,
+           -latitude,
+           -longitude,
+           -RELEVE_NR.x) %>%
+    relocate(
+      Releve_Nr, .after = RS_PROJECT
     )
   
   # Speichern des Datensatzes
@@ -388,22 +413,21 @@ generate_eunis_data <- function(eunis_code_list, write_tmp_file) {
   
   # Nur ein kleiner check um zu sehen, wieviele Parameter pro Messstelle bemessen worden sind
   coverage <- eunis_out %>%
-    summarise(across(-c(`RS_SITE`, LATITUDE, LONGITUDE),
-                     ~ mean(!is.na(.)))) %>%
+    summarise(across(-c(`RS_SITE`, LATITUDE, LONGITUDE), ~ mean(!is.na(.)))) %>%
     pivot_longer(everything(), names_to = "messgroesse", values_to = "share_present") %>%
     arrange(share_present)
   
   # Für reproduzierbarkeit beim sampeln
   set.seed(42)
   
-  # Samplen fürs codap limit
-  eunis_out <- eunis_out[sample(nrow(eunis_out), 4950), ] %>%
-    select(-`Stickstoff gesamt`, -`Phosphor gesamt`) # Bei Messstellenentfernung von unter 10km haben wir keine Messwerte für die Messgrößen
-
+  # # Samplen fürs codap limit
+  # eunis_out <- eunis_out[sample(nrow(eunis_out), 4950), ] %>%
+  #   select(-`Stickstoff gesamt`, -`Phosphor gesamt`) # Bei Messstellenentfernung von unter 10km haben wir keine Messwerte für die Messgrößen
+  
   # Dieser Datensatz ist schonmal in CODAP kopierbar.
   write.csv(eunis_out, file = result_data_file, row.names = FALSE)
   
-  return(combined_eunis_df)
+  return(eunis_out)
 }
 
 
@@ -411,13 +435,10 @@ generate_eunis_data <- function(eunis_code_list, write_tmp_file) {
 
 eunis_code_list = c("T17", "T18", "R22", "V11", "V15")
 
-  
+
 
 # write_tmp_file = TRUE wenn einzeldatensätze zu den einzelnen EUNIS Flächen mitgeneriert werden sollen. Diese landen im tmp_data ordner
-tmp_eunis_code_df = generate_eunis_data(
-  eunis_code_list = eunis_code_list,
-  write_tmp_file = TRUE
-  )
+tmp_eunis_code_df = generate_eunis_data(eunis_code_list = eunis_code_list, write_tmp_file = TRUE)
 
 
 # for (df in eunis_df_list) {
