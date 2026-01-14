@@ -164,7 +164,7 @@ merge_re_survey_with_dwd_grids <- function() {
     "PROJECT_ID.x",
     "PROJECT_ID.y",
     "LOCALITY",
-    "DATE",
+    #"DATE",
     "LOC_METH_COMMENT",
     "COUNTRY",
     "REFERENCE",
