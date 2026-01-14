@@ -145,12 +145,7 @@ generate_eunis_data <- function(eunis_code_list, write_tmp_file) {
   
   # für das manyglm passende format
   species_mat <- glm_data %>%
-    select(-RS_PLOT,
-           -YEAR,
-           -TEMPERATURE,
-           -PRECIPITATION,
-           -COV_TOTAL,
-           -EUNIS) %>%
+    select(-RS_PLOT,-YEAR,-TEMPERATURE,-PRECIPITATION,-COV_TOTAL,-EUNIS) %>%
     as.matrix()
   
   # manyglm format werden nun die prediktoren hinzugefügt
@@ -397,14 +392,8 @@ generate_eunis_data <- function(eunis_code_list, write_tmp_file) {
   eunis_out <- eunis_out %>%
     filter(Entfernung_Messstelle < 5000) %>% # Erstmal filtere ich nach einer entfernung von 10km der Messstelle zur RS_Site, variabel anpassbar
     mutate(Releve_Nr = paste(RS_PROJECT, RELEVE_NR.x, sep = ":")) %>%
-    select(-soil_row_id,
-           -Messstellennummer,
-           -latitude,
-           -longitude,
-           -RELEVE_NR.x) %>%
-    relocate(
-      Releve_Nr, .after = RS_PROJECT
-    )
+    select(-soil_row_id,-Messstellennummer,-latitude,-longitude,-RELEVE_NR.x) %>%
+    relocate(Releve_Nr, .after = RS_PROJECT)
   
   # Speichern des Datensatzes
   result_dir <- path("result_data", "EUNIS")
