@@ -14,73 +14,73 @@ source("Skripte/utils_data_description.R")
 
 generate_eunis_data <- function(eunis_code_list, write_tmp_file) {
   # Hier wird sich die Grund-Datei geholt
-  survey_df <- merge_re_survey_with_dwd_grids()
+  #survey_df <- merge_re_survey_with_dwd_grids()
   
   # Debugzeile
-  #survey_df <- read_csv("tmp_data/ReSurveyGermany/re_survey_germany_filtered_years.csv")
+  survey_df <- read_csv("tmp_data/ReSurveyGermany/re_survey_germany_filtered_years.csv")
   
   
   ######################################################################################
   # --------------------------------------SOIL------------------------------------------
-  
-  # 1. Vorbereiten der Bodendaten
-  soil_df <- read_csv2("raw_data/Bodendaten/Bodendaten_Abfrage_UBA.csv") %>%
-    filter(
-      `Bodenmesswert - Oberkante [cm]` > 0,
-      `Bodenmesswert - Unterkante [cm]` <= 30,
-      stringr::str_count(
-        as.character(`Bodenmesswert - Messwert`),
-        ","  # Komische Einträge entfernen
-      ) <= 1
-    ) %>%
-    select(-`Messung - Probenahmedatum`) %>%
-    mutate(
-      `Bodenmesswert - Messwert` = as.numeric(sub(",", ".", `Bodenmesswert - Messwert`)),
-      # Einfacher Datatype cast
-      `Parameter - Messgröße` = ifelse(
-        # angleichen der pH-Spalte
-        `Parameter - Messgröße` == "pH",
-        "pH-Wert",
-        `Parameter - Messgröße`
-      ),
-      `Parameter - Einheit` = ifelse(
-        `Parameter - Messgröße` == "pH-Wert",
-        "ohne",
-        `Parameter - Einheit`
-      ),
-      `Bodenmesswert - Messwert` = dplyr::case_when(
-        `Parameter - Messgröße` == "pH-Wert" &
-          `Bodenmesswert - Messwert` > 14 ~ `Bodenmesswert - Messwert` / 100,
-        TRUE ~ `Bodenmesswert - Messwert`
-      )
-    ) %>%
-    group_by(`Messstellennummer`, `Parameter - Messgröße`) %>%
-    summarise(
-      # Gruppieren nach Messstellennummer und Messgröße
-      value = median(`Bodenmesswert - Messwert`, na.rm = TRUE),
-      latitude  = first(Latitude),
-      longitude = first(Longitude),
-      n = n(),
-      .groups = "drop"
-    ) %>%
-    pivot_wider(
-      # long to wide formatierung
-      id_cols = c(`Messstellennummer`, latitude, longitude),
-      names_from  = `Parameter - Messgröße`,
-      values_from = value
-    ) %>% # komische Formatierungen entfernen
-    mutate(`pH-Wert` = ifelse(`pH-Wert` <= 0 |
-                                `pH-Wert` > 14, NA, `pH-Wert`))
-  
-  
-  # Nur ein kleiner check um zu sehen, wieviele Parameter pro Messstelle bemessen worden sind
-  coverage <- soil_df %>%
-    summarise(across(
-      -c(`Messstellennummer`, latitude, longitude),
-      ~ mean(!is.na(.))
-    )) %>%
-    pivot_longer(everything(), names_to = "messgroesse", values_to = "share_present") %>%
-    arrange(share_present)
+  # 
+  # # 1. Vorbereiten der Bodendaten
+  # soil_df <- read_csv2("raw_data/Bodendaten/Bodendaten_Abfrage_UBA.csv") %>%
+  #   filter(
+  #     `Bodenmesswert - Oberkante [cm]` > 0,
+  #     `Bodenmesswert - Unterkante [cm]` <= 30,
+  #     stringr::str_count(
+  #       as.character(`Bodenmesswert - Messwert`),
+  #       ","  # Komische Einträge entfernen
+  #     ) <= 1
+  #   ) %>%
+  #   select(-`Messung - Probenahmedatum`) %>%
+  #   mutate(
+  #     `Bodenmesswert - Messwert` = as.numeric(sub(",", ".", `Bodenmesswert - Messwert`)),
+  #     # Einfacher Datatype cast
+  #     `Parameter - Messgröße` = ifelse(
+  #       # angleichen der pH-Spalte
+  #       `Parameter - Messgröße` == "pH",
+  #       "pH-Wert",
+  #       `Parameter - Messgröße`
+  #     ),
+  #     `Parameter - Einheit` = ifelse(
+  #       `Parameter - Messgröße` == "pH-Wert",
+  #       "ohne",
+  #       `Parameter - Einheit`
+  #     ),
+  #     `Bodenmesswert - Messwert` = dplyr::case_when(
+  #       `Parameter - Messgröße` == "pH-Wert" &
+  #         `Bodenmesswert - Messwert` > 14 ~ `Bodenmesswert - Messwert` / 100,
+  #       TRUE ~ `Bodenmesswert - Messwert`
+  #     )
+  #   ) %>%
+  #   group_by(`Messstellennummer`, `Parameter - Messgröße`) %>%
+  #   summarise(
+  #     # Gruppieren nach Messstellennummer und Messgröße
+  #     value = median(`Bodenmesswert - Messwert`, na.rm = TRUE),
+  #     latitude  = first(Latitude),
+  #     longitude = first(Longitude),
+  #     n = n(),
+  #     .groups = "drop"
+  #   ) %>%
+  #   pivot_wider(
+  #     # long to wide formatierung
+  #     id_cols = c(`Messstellennummer`, latitude, longitude),
+  #     names_from  = `Parameter - Messgröße`,
+  #     values_from = value
+  #   ) %>% # komische Formatierungen entfernen
+  #   mutate(`pH-Wert` = ifelse(`pH-Wert` <= 0 |
+  #                               `pH-Wert` > 14, NA, `pH-Wert`))
+  # 
+  # 
+  # # Nur ein kleiner check um zu sehen, wieviele Parameter pro Messstelle bemessen worden sind
+  # coverage <- soil_df %>%
+  #   summarise(across(
+  #     -c(`Messstellennummer`, latitude, longitude),
+  #     ~ mean(!is.na(.))
+  #   )) %>%
+  #   pivot_longer(everything(), names_to = "messgroesse", values_to = "share_present") %>%
+  #   arrange(share_present)
   
   #####################################################################################
   # 2. Survey Data vorbereiten
@@ -197,7 +197,7 @@ generate_eunis_data <- function(eunis_code_list, write_tmp_file) {
   combined_eunis_df = tibble()
   
   #-----------------------------------------------------------------------------
-  for (eunis_code in c("R22")) {
+  for (eunis_code in eunis_code_list) {
     eunis_code_df <- survey_df_pred %>%
       filter(EUNIS == eunis_code)
     
@@ -251,7 +251,7 @@ generate_eunis_data <- function(eunis_code_list, write_tmp_file) {
     
     if (write_tmp_file) {
       # Dieser Datensatz ist schonmal in CODAP kopierbar.
-      write.csv(head(eunis_code_df, 4900),
+      write.csv(eunis_code_df,#head(, 4900),
                 file = tmp_data_file,
                 row.names = FALSE)
     }
@@ -260,7 +260,7 @@ generate_eunis_data <- function(eunis_code_list, write_tmp_file) {
     # Die Zahl ist so gewählt, dass die enddatei etwas knapp unter 5000 Einträgen bleibt.
     
     
-    #eunis_code_df <- head(eunis_code_df, 1300) %>%
+    eunis_code_df <- head(eunis_code_df, 5000)
     
     eunis_code_df <- eunis_code_df %>%
       mutate(TEMPERATURE15 = TEMPERATURE + 1.5)
@@ -318,105 +318,105 @@ generate_eunis_data <- function(eunis_code_list, write_tmp_file) {
   
   
   
-  soil_df <- soil_df %>%
-    filter(!is.na(latitude), !is.na(longitude)) %>%
-    mutate(
-      latitude  = as.numeric(latitude),
-      longitude = as.numeric(longitude),
-      
-      lat_1e6 = latitude / 1e6,
-      lat_1e7 = latitude / 1e7,
-      lat_1e8 = latitude / 1e8,
-      lon_1e6 = longitude / 1e6,
-      lon_1e7 = longitude / 1e7,
-      lon_1e8 = longitude / 1e8,
-      
-      latitude = dplyr::case_when(
-        latitude >= 45 & latitude <= 55 ~ latitude,
-        # schon Grad
-        lat_1e8  >= 45 & lat_1e8  <= 55 ~ lat_1e8,
-        lat_1e7  >= 45 & lat_1e7  <= 55 ~ lat_1e7,
-        lat_1e6  >= 45 & lat_1e6  <= 55 ~ lat_1e6,
-        TRUE ~ NA_real_
-      ),
-      
-      longitude = dplyr::case_when(
-        longitude >= 5 & longitude <= 16 ~ longitude,
-        # schon Grad
-        lon_1e8   >= 5 & lon_1e8   <= 16 ~ lon_1e8,
-        lon_1e7   >= 5 & lon_1e7   <= 16 ~ lon_1e7,
-        lon_1e6   >= 5 & lon_1e6   <= 16 ~ lon_1e6,
-        TRUE ~ NA_real_
-      )
-    ) %>%
-    select(-lat_1e6, -lat_1e7, -lat_1e8, -lon_1e6, -lon_1e7, -lon_1e8) %>%
-    filter(!is.na(latitude), !is.na(longitude))
-  
-  
-  
-  soil_sf <- soil_df %>%
-    st_as_sf(
-      coords = c("longitude", "latitude"),
-      crs = 4326,
-      remove = FALSE
-    )
-  
-  eunis_sf <- combined_eunis_df %>%
-    st_as_sf(
-      coords = c("LONGITUDE", "LATITUDE"),
-      crs = 4326,
-      remove = FALSE
-    )
-  
-  
-  soil_m  <- st_transform(soil_sf, 3035)
-  eunis_m <- st_transform(eunis_sf, 3035)
-  
-  nearest_idx <- st_nearest_feature(eunis_m, soil_m)
-  
-  dist_m <- st_distance(eunis_m, soil_m[nearest_idx, ], by_element = TRUE)
-  dist_m <- as.numeric(dist_m)  # units -> numeric
-  
-  
-  soil_attr <- soil_m %>%
-    st_drop_geometry() %>%
-    mutate(soil_row_id = row_number())
-  
-  eunis_out <- eunis_m %>%
-    st_drop_geometry() %>%
-    mutate(soil_row_id = soil_attr$soil_row_id[nearest_idx],
-           Entfernung_Messstelle = dist_m) %>%
-    left_join(soil_attr, by = "soil_row_id")
-  
-  
-  eunis_out <- eunis_out %>%
-    filter(Entfernung_Messstelle < 5000) %>% # Erstmal filtere ich nach einer entfernung von 10km der Messstelle zur RS_Site, variabel anpassbar
-    mutate(Releve_Nr = paste(RS_PROJECT, RELEVE_NR.x, sep = ":")) %>%
-    select(-soil_row_id,-Messstellennummer,-latitude,-longitude,-RELEVE_NR.x) %>%
-    relocate(Releve_Nr, .after = RS_PROJECT)
+  # soil_df <- soil_df %>%
+  #   filter(!is.na(latitude), !is.na(longitude)) %>%
+  #   mutate(
+  #     latitude  = as.numeric(latitude),
+  #     longitude = as.numeric(longitude),
+  #     
+  #     lat_1e6 = latitude / 1e6,
+  #     lat_1e7 = latitude / 1e7,
+  #     lat_1e8 = latitude / 1e8,
+  #     lon_1e6 = longitude / 1e6,
+  #     lon_1e7 = longitude / 1e7,
+  #     lon_1e8 = longitude / 1e8,
+  #     
+  #     latitude = dplyr::case_when(
+  #       latitude >= 45 & latitude <= 55 ~ latitude,
+  #       # schon Grad
+  #       lat_1e8  >= 45 & lat_1e8  <= 55 ~ lat_1e8,
+  #       lat_1e7  >= 45 & lat_1e7  <= 55 ~ lat_1e7,
+  #       lat_1e6  >= 45 & lat_1e6  <= 55 ~ lat_1e6,
+  #       TRUE ~ NA_real_
+  #     ),
+  #     
+  #     longitude = dplyr::case_when(
+  #       longitude >= 5 & longitude <= 16 ~ longitude,
+  #       # schon Grad
+  #       lon_1e8   >= 5 & lon_1e8   <= 16 ~ lon_1e8,
+  #       lon_1e7   >= 5 & lon_1e7   <= 16 ~ lon_1e7,
+  #       lon_1e6   >= 5 & lon_1e6   <= 16 ~ lon_1e6,
+  #       TRUE ~ NA_real_
+  #     )
+  #   ) %>%
+  #   select(-lat_1e6, -lat_1e7, -lat_1e8, -lon_1e6, -lon_1e7, -lon_1e8) %>%
+  #   filter(!is.na(latitude), !is.na(longitude))
+  # 
+  # 
+  # 
+  # soil_sf <- soil_df %>%
+  #   st_as_sf(
+  #     coords = c("longitude", "latitude"),
+  #     crs = 4326,
+  #     remove = FALSE
+  #   )
+  # 
+  # eunis_sf <- combined_eunis_df %>%
+  #   st_as_sf(
+  #     coords = c("LONGITUDE", "LATITUDE"),
+  #     crs = 4326,
+  #     remove = FALSE
+  #   )
+  # 
+  # 
+  # soil_m  <- st_transform(soil_sf, 3035)
+  # eunis_m <- st_transform(eunis_sf, 3035)
+  # 
+  # nearest_idx <- st_nearest_feature(eunis_m, soil_m)
+  # 
+  # dist_m <- st_distance(eunis_m, soil_m[nearest_idx, ], by_element = TRUE)
+  # dist_m <- as.numeric(dist_m)  # units -> numeric
+  # 
+  # 
+  # soil_attr <- soil_m %>%
+  #   st_drop_geometry() %>%
+  #   mutate(soil_row_id = row_number())
+  # 
+  # eunis_out <- eunis_m %>%
+  #   st_drop_geometry() %>%
+  #   mutate(soil_row_id = soil_attr$soil_row_id[nearest_idx],
+  #          Entfernung_Messstelle = dist_m) %>%
+  #   left_join(soil_attr, by = "soil_row_id")
+  # 
+  # 
+  # eunis_out <- eunis_out %>%
+  #   filter(Entfernung_Messstelle < 5000) %>% # Erstmal filtere ich nach einer entfernung von 10km der Messstelle zur RS_Site, variabel anpassbar
+  #   mutate(Releve_Nr = paste(RS_PROJECT, RELEVE_NR.x, sep = ":")) %>%
+  #   select(-soil_row_id,-Messstellennummer,-latitude,-longitude,-RELEVE_NR.x) %>%
+  #   relocate(Releve_Nr, .after = RS_PROJECT)
   
   # Speichern des Datensatzes
   result_dir <- path("result_data", "EUNIS")
   dir_create(result_dir, recurse = TRUE)
   result_data_file <- path(result_dir, "combined_eunis.csv")
   
-  # Nur ein kleiner check um zu sehen, wieviele Parameter pro Messstelle bemessen worden sind
-  coverage <- eunis_out %>%
-    summarise(across(-c(`RS_SITE`, LATITUDE, LONGITUDE), ~ mean(!is.na(.)))) %>%
-    pivot_longer(everything(), names_to = "messgroesse", values_to = "share_present") %>%
-    arrange(share_present)
+  # # Nur ein kleiner check um zu sehen, wieviele Parameter pro Messstelle bemessen worden sind
+  # coverage <- eunis_out %>%
+  #   summarise(across(-c(`RS_SITE`, LATITUDE, LONGITUDE), ~ mean(!is.na(.)))) %>%
+  #   pivot_longer(everything(), names_to = "messgroesse", values_to = "share_present") %>%
+  #   arrange(share_present)
   
   # Für reproduzierbarkeit beim sampeln
   set.seed(42)
   
   # # Samplen fürs codap limit
-  # eunis_out <- eunis_out[sample(nrow(eunis_out), 4950), ] %>%
+  combined_eunis_df <- combined_eunis_df[sample(nrow(combined_eunis_df), 4950), ]
   #   select(-`Stickstoff gesamt`, -`Phosphor gesamt`) # Bei Messstellenentfernung von unter 10km haben wir keine Messwerte für die Messgrößen
   
   # Dieser Datensatz ist schonmal in CODAP kopierbar.
-  write.csv(eunis_out, file = result_data_file, row.names = FALSE)
+  write.csv(combined_eunis_df, file = result_data_file, row.names = FALSE)
   
-  return(eunis_out)
+  return(combined_eunis_df)
 }
 
 
