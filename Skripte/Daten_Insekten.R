@@ -28,7 +28,6 @@ generate_insect_data <- function() {
   
   sample <- read_csv("raw_data/Insects/data/SampleData_2023.csv")
   
-  foo <- read_csv("raw_data/Insects/data/rawData_2023.csv")
   
   raw <- read_csv("raw_data/Insects/data/rawData_2023.csv") %>%
     mutate(
@@ -36,30 +35,40 @@ generate_insect_data <- function() {
     ) %>%
     filter(
       Unit == "Abundance",
-      Year >= 2000,
-      !is.na(Taxon)
+      Year >= 2000
+    ) %>%
+    left_join(
+      sample %>% select(Sample_ID, Stratum),
+      by = "Sample_ID"
     )
-  
+  # 
   df_taxa <- raw %>%
-    group_by(Plot_ID, Year, Taxon) %>%
+    group_by(Plot_ID, Year, Stratum, Taxon) %>%
     summarise(
       abundance = sum(Number, na.rm = TRUE),
       .groups = "drop"
     )
-  
+
   df_div <- df_taxa %>%
-    group_by(Plot_ID, Year) %>%
+    group_by(Plot_ID, Year, Stratum) %>%
     mutate(
       p_i = abundance / sum(abundance)
     ) %>%
     summarise(
       Shannon = -sum(p_i * log(p_i), na.rm = TRUE),
-      Simpson = 1 - sum(p_i^2),
+      Simpson = {
+        n <- sum(abundance)
+        if (n > 1) {
+          1 - sum(abundance * (abundance - 1)) / (n * (n - 1))
+        } else {
+          0
+        }
+      },
       .groups = "drop"
     )
-  
+
   df_richness <- raw %>%
-    group_by(Plot_ID, Year) %>%
+    group_by(Plot_ID, Year, Stratum) %>%
     summarise(
       Artenzahl = n_distinct(Taxon),
       .groups = "drop"
@@ -67,52 +76,12 @@ generate_insect_data <- function() {
   
   
   df_full <- abundance %>%
-    left_join(plots %>% select(-DataSource_ID), by = "Plot_ID") %>%
+    left_join(plots %>% select(-DataSource_ID), by = "Plot_ID")  %>%
     left_join(sources, by = "DataSource_ID")
   # %>%
   #   filter(NationState %in% c("United Kingdom", "Sweden", "USA"))
   
 
-  
-  df_full_seasons <- df_full %>%
-    mutate(
-      period_clean = str_to_lower(str_trim(Period)),
-      
-      # Monat als Zahl extrahieren:
-      # - "july", "7", "07" etc.
-      # - "14-6" -> 6
-      month_num = case_when(
-        str_detect(period_clean, "^[0-9]{1,2}$") ~ as.numeric(period_clean),
-        str_detect(period_clean, "^[0-9]{1,2}-[0-9]{1,2}$") ~ as.numeric(str_extract(period_clean, "(?<=-)[0-9]{1,2}")),
-        period_clean %in% c("january") ~ 1,
-        period_clean %in% c("february") ~ 2,
-        period_clean %in% c("march") ~ 3,
-        period_clean %in% c("april") ~ 4,
-        period_clean %in% c("may") ~ 5,
-        period_clean %in% c("june") ~ 6,
-        period_clean %in% c("july") ~ 7,
-        period_clean %in% c("august") ~ 8,
-        period_clean %in% c("september") ~ 9,
-        period_clean %in% c("october") ~ 10,
-        period_clean %in% c("november") ~ 11,
-        period_clean %in% c("december") ~ 12,
-        TRUE ~ NA_real_
-      ),
-      
-      season = case_when(
-        period_clean %in% c("spring") ~ "Frühling",
-        period_clean %in% c("summer") ~ "Sommer",
-        period_clean %in% c("autumn", "fall") ~ "Herbst",
-        period_clean %in% c("winter") ~ "Winter",
-        month_num %in% c(12, 1, 2) ~ "Winter",
-        month_num %in% c(3, 4, 5) ~ "Frühling",
-        month_num %in% c(6, 7, 8) ~ "Sommer",
-        month_num %in% c(9, 10, 11) ~ "Herbst",
-        TRUE ~ NA_character_
-      )
-    )
-  
-  
   nationCount <- df_full %>%
     count(NationState, sort = TRUE)
   
@@ -127,7 +96,7 @@ generate_insect_data <- function() {
       first = min(Year),
       last = max(Year)
     ) %>%
-    filter(n_years >= 5) %>%
+    filter(n_years >= 10) %>%
     pull(Plot_ID)
   
   
@@ -137,81 +106,9 @@ generate_insect_data <- function() {
     select(-starts_with("..."))
   
   
-  df_full_seasons <- df_full_seasons %>%
-    filter(Plot_ID %in% long_measured_plots) %>%
-    select(-starts_with("..."))
-  
-  
-  df_seasonal <- df_full_seasons %>%
-    filter(!is.na(season)) %>%
-    group_by(Plot_ID, Year, season) %>%
-    summarise(
-      abundance = median(Number, na.rm = TRUE),
-      n_measurements = n(),
-      DataSource_ID = first(DataSource_ID),
-      Latitude = first(Latitude),
-      Longitude = first(Longitude),
-      Ort = first(Location),
-      Land = first(NationState),
-      Klima = first(ClimateZone),
-      .groups = "drop"
-    )
-  
-  raw_seasons <- raw %>%
-    mutate(
-      period_clean = str_to_lower(str_trim(Period)),
-      month_num = case_when(
-        str_detect(period_clean, "^[0-9]{1,2}$") ~ as.numeric(period_clean),
-        str_detect(period_clean, "^[0-9]{1,2}-[0-9]{1,2}$") ~ as.numeric(str_extract(period_clean, "(?<=-)[0-9]{1,2}")),
-        period_clean == "january" ~ 1,
-        period_clean == "february" ~ 2,
-        period_clean == "march" ~ 3,
-        period_clean == "april" ~ 4,
-        period_clean == "may" ~ 5,
-        period_clean == "june" ~ 6,
-        period_clean == "july" ~ 7,
-        period_clean == "august" ~ 8,
-        period_clean == "september" ~ 9,
-        period_clean == "october" ~ 10,
-        period_clean == "november" ~ 11,
-        period_clean == "december" ~ 12,
-        TRUE ~ NA_real_
-      ),
-      season = case_when(
-        period_clean == "spring" ~ "Frühling",
-        period_clean == "summer" ~ "Sommer",
-        period_clean %in% c("autumn", "fall") ~ "Herbst",
-        period_clean == "winter" ~ "Winter",
-        month_num %in% c(12, 1, 2) ~ "Winter",
-        month_num %in% c(3, 4, 5) ~ "Frühling",
-        month_num %in% c(6, 7, 8) ~ "Sommer",
-        month_num %in% c(9, 10, 11) ~ "Herbst",
-        TRUE ~ NA_character_
-      )
-    )
-  
-  df_richness_seasonal <- raw_seasons %>%
-    filter(!is.na(season)) %>%
-    group_by(Plot_ID, Year, season) %>%
-    summarise(
-      Artenzahl = n_distinct(Taxon),
-      .groups = "drop"
-    )
-  
-  df_seasonal <- df_seasonal %>%
-    inner_join(df_richness_seasonal, by = c("Plot_ID", "Year", "season"))
-  
-  df_seasonal_rel <- df_seasonal %>%
-    group_by(Plot_ID, season) %>%
-    mutate(abundance_rel = abundance / median(abundance)
-    ) %>%
-    ungroup()
-  
-  
-  
   
   df_yearly <- df_full %>%
-    group_by(Plot_ID, Year) %>%
+    group_by(Plot_ID, Year, Stratum) %>%
     summarise(
       abundance = median(Number, na.rm = TRUE),
       n_measurements = n(),
@@ -225,57 +122,32 @@ generate_insect_data <- function() {
     )
   
   df_yearly <- df_yearly %>%
-    inner_join(df_richness, by = c("Plot_ID", "Year"))
+    inner_join(df_richness, by = c("Plot_ID", "Year", "Stratum"))
   
   
   
   df_yearly_rel <- df_yearly %>%
-    group_by(Plot_ID) %>%
+    group_by(Plot_ID, Stratum) %>%
     arrange(Year, .by_group = TRUE) %>%
     mutate(
-      abundance_rel = abundance / median(abundance)
+      abundance_rel_median = abundance / median(abundance),
+      abundance_rel_first = abundance / first(abundance)
     ) %>%
     ungroup() %>%
-    filter(abundance_rel > 0,
-           is.finite(abundance_rel),
+    filter(
+           is.finite(abundance_rel_median),
            !is.na(Klima)
            )
+
   
   df_yearly_rel <- df_yearly_rel %>%
-    left_join(df_div, by = c("Plot_ID", "Year"))
-  
-  df_slopes_div <- df_yearly_rel %>%
-    group_by(Plot_ID) %>%
-    filter(sum(Artenzahl > 1) >= 2) %>%
-    summarise(
-      slope_shannon = coef(lm(Shannon ~ Year))[2],
-      slope_simpson = coef(lm(Simpson ~ Year))[2],
-      n_years = n(),
-      .groups = "drop"
-    )
+    left_join(df_div, by = c("Plot_ID", "Year", "Stratum"))
   
   
-  df_agg_year <- df_yearly_rel %>%
-  group_by(Year, Klima) %>%
-    summarise(
-      n_monitorings  = n(),
-      median_abundance = median(abundance_rel, na.rm = TRUE),
-      sd_abundance   = sd(abundance_rel, na.rm = TRUE),
-      .groups = "drop"
-    ) %>%
-  arrange(Year)
+  foo <- read_csv("codap_insect_abundance_global_n=10.csv")
+  
 
-  # df_slopes_richness <- df_yearly_rel %>%
-  #   group_by(Plot_ID) %>%
-  #   do({
-  #     m <- lm(Artenzahl ~ Year, data = .)
-  #     data.frame(slope_Artenzahl = coef(m)[2])
-  #   }) %>%
-  #   ungroup()
   
-  write_csv(df_slopes_div, "codap_insects_slope.csv")
-  write_csv(df_agg_year, "codap_insect_short.csv")
-  write_csv(df_seasonal_rel, "codap_insect_seasonal.csv")
   write_csv(df_yearly_rel, "codap_insect_abundance_global.csv")
   
   y <- 1
