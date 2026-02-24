@@ -7,7 +7,7 @@ suppressPackageStartupMessages({
   library(stringr)
 })
 
-generate_insect_data <- function() {
+generate_insect_data <- function(min_years, min_measures) {
   
   abundance <- read_csv("raw_data/Insects/data/InsectAbundanceBiomassData.csv") %>%
     filter(
@@ -96,7 +96,7 @@ generate_insect_data <- function() {
       first = min(Year),
       last = max(Year)
     ) %>%
-    filter(n_years >= 10) %>%
+    filter(n_years >= min_years) %>%
     pull(Plot_ID)
   
   
@@ -119,7 +119,8 @@ generate_insect_data <- function() {
       Land = first(NationState),
       Klima = first(ClimateZone),
       .groups = "drop"
-    )
+    ) %>%
+    filter(n_measurements >= min_measures)
   
   df_yearly <- df_yearly %>%
     inner_join(df_richness, by = c("Plot_ID", "Year", "Stratum"))
@@ -148,9 +149,8 @@ generate_insect_data <- function() {
   
 
   
-  write_csv(df_yearly_rel, "codap_insect_abundance_global.csv")
+  write_csv(df_yearly_rel, "codap_insect_abundance_global_indices_n=5_z=3.csv")
   
-  y <- 1
   
   
 
@@ -180,4 +180,4 @@ generate_insect_data <- function() {
 #write_csv(df_periods, "codap_insect_abundance_periods_global.csv")
 
 
-generate_insect_data()
+generate_insect_data(min_years = 5, min_measures = 3)
