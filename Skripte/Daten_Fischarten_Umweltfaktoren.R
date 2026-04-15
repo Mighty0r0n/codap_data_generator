@@ -14,44 +14,8 @@ suppressPackageStartupMessages({
 source("Skripte/utils_data_description.R")
 
 
-add_water_data_xlsx <- function(df) {
-  water_path <- path("raw_data", "Gewässer")
-  
-  water_file <- path(water_path, "Gewässerdaten_Datenanfrage_UBA.xlsx")
-  
-  
-  water_sheets <- excel_sheets(water_file)
-  
-  sheets <- setdiff(water_sheets, "Messstellenangaben")
-  sheets <- sheets[sheets != "Impressum"]
-  
-  
-  messdaten <- map_dfr(
-    sheets,
-    ~ read_xlsx(water_file, sheet = .x) |>
-      mutate(parameter = .x)
-  ) |>
-    mutate(
-      jahr = year(messzeit),
-      bestgrenze = na_if(bestgrenze, -999),
-      messwert = ifelse(is.na(messwert) & !is.na(bestgrenze),
-                        bestgrenze / 2,
-                        messwert)
-    )
-  
-  messdaten <- messdaten |>
-    select(stat_lawa, messart, parameter, jahr, messwert)
-  
-  
-  return(df)
-}
-
-
 
 add_water_data <- function(df) {
-  
-  
-  
   water_path <- path("raw_data", "Gewässer")
   
   water_file <- path(water_path, "waterbase.csv")
@@ -60,8 +24,18 @@ add_water_data <- function(df) {
   
   
   # als sf (WGS84)
-  fish_sf <- st_as_sf(df, coords = c("Longitude", "Latitude"), crs = 4326, remove = FALSE)
-  water_sf <- st_as_sf(water_df, coords = c("Longitude", "Latitude"), crs = 4326, remove = FALSE)
+  fish_sf <- st_as_sf(
+    df,
+    coords = c("Longitude", "Latitude"),
+    crs = 4326,
+    remove = FALSE
+  )
+  water_sf <- st_as_sf(
+    water_df,
+    coords = c("Longitude", "Latitude"),
+    crs = 4326,
+    remove = FALSE
+  )
   
   # in metrisches CRS für Distanzen
   fish_sf  <- st_transform(fish_sf, 3035)
@@ -76,8 +50,9 @@ add_water_data <- function(df) {
     
     
     # Wenn keine Messung in dem Jahr an der Messstelle stattfand, werden die Daten entfernt
-    if (nrow(water_y) == 0) return(NULL)
-
+    if (nrow(water_y) == 0)
+      return(NULL)
+    
     
     idx <- st_nearest_feature(fish_y, water_y)
     
@@ -85,16 +60,14 @@ add_water_data <- function(df) {
     fish_y$water_dist_m <- as.numeric(st_distance(fish_y, water_y[idx, ], by_element = TRUE))
     
     # Wasser-Features dranhängen
-    water_feats <- water_y[idx, ] 
+    water_feats <- water_y[idx, ]
     
     
-
+    
     fish_tbl <- st_drop_geometry(fish_y) %>%
-      rename(
-        LONGITUDE = Longitude,
-        LATITUDE  = Latitude,
-        Messung_Jahr      = year
-      )
+      rename(LONGITUDE = Longitude,
+             LATITUDE  = Latitude,
+             Messung_Jahr      = year)
     
     water_tbl <- st_drop_geometry(water_y[idx, ]) %>%
       rename(
@@ -107,10 +80,6 @@ add_water_data <- function(df) {
     bind_cols(fish_tbl, water_tbl)
   })
   
-
-  
-  
-  
   
   df <- bind_rows(out_list)
   
@@ -120,22 +89,11 @@ add_water_data <- function(df) {
     filter(!is.na(Messstelle_Longitude)) %>%
     select(-Messstelle_Latitude, -Messstelle_Longitude)
   
-
-  
-  
   return(df)
 }
 
 
 
-
-
-# Das ganze wird als Funktion definiert, um zu Verhindern dass wir zu viele
-# Globale Variablen erzeugen. Globale Variablen sind zu jeder Zeit der Laufzeit
-# gespeichert. Haben 2 Skripte nun die selben Variablen aber einen anderen Inhalt
-# können wir im schlimmsten Fall zuvor erstelle Daten ausversehen löschen oder
-# sie manipulieren ohne es zu merken. Deshalb bekommt jede Variable mithilfe dieser
-# Funktion eingenen Gültigkeitsbereich um die "uniqueness" der Variable zu gewährleisten.
 generate_fish_env_data <- function() {
   fish_dir <- path("raw_data", "fish_gbif")
   fish_occurrence_pfad <- path(fish_dir, "occurrence.txt")
@@ -181,72 +139,76 @@ generate_fish_env_data <- function() {
     "isSequenced",
     "gbifRegion",
     "publishedByGbifRegion",
-    "eventID",
+    #"eventID",
     "higherGeographyID",
     "taxonomicIssue",
-    "eventDate",
+    #"eventDate",
     "month",
     "day"
   )
   
   
-  
-  
+
   fish_occurrence_df <- read_tsv(fish_occurrence_pfad)
+  
+  
+  
+
+  
   
   
   # Hier werden alle Spalten die ausschließlich NA's enthalten und weitere unintressante Spalten gefiltert
   fish_reduced <- fish_occurrence_df %>%
-    select(where(~ !all(is.na(.))), -all_of(col_to_drop)) %>%
-    drop_na() #%>%
-    #filter(habitat == "See")
-  
+    select(where( ~ !all(is.na(.))), -all_of(col_to_drop)) %>%
+    drop_na() %>%
+    select(
+      individualCount,
+      year,
+      locality,
+      decimalLatitude,
+      decimalLongitude,
+      species,
+      level1Name,
+      eventID,
+      eventDate
+    ) %>%
+    group_by(
+      locality,
+      year,
+      eventDate,
+      species
+    ) %>%
+    summarise(
+      individualCount  = mean(individualCount, na.rm = TRUE),
+      Latitude  = median(decimalLatitude,  na.rm = TRUE),
+      Longitude = median(decimalLongitude, na.rm = TRUE),
+      level1Name       = first(level1Name),
+      eventID          = first(eventID),
+      .groups = "drop"
+    ) %>% # Filtern von Localitys die insgesamt über alle jahre nur 3 mal bemessen worden sind. Das betrifft 6 localitys die über alle Jahre nur 1-2 mal bemessen worden sind
+    group_by(locality) %>%
+    filter(n() > 4) %>%
+    ungroup()
 
   
-  # Hier wird gefiltert und der Datensatz fürs mapping vorbereitet
-  fish_handler <- fish_reduced %>%
-    filter(!habitat %in% c("Uebergangsgewaesser", "Graben")) %>%
-    select(individualCount, year, locality, decimalLatitude, decimalLongitude, species, level1Name)
-  
-  
-  # sf ist ein Tool um koordinaten über ein grid zu clustern. Das verwende ich um die Standorte zusammenzuführen bei leicht abweichenden Koordinaten
-  # gibt sonst keine Spalte um sauber und schnell eine Zuweisung nach Sampling Location zu machen. Die vorhandene Spalte locality ist zu heterogen um
-  # dort eine saubere aufteilung zu garantieren bei der Datenmenge
-  
-  fish_with_id <- st_as_sf(
-    fish_handler,
-    coords = c("decimalLongitude", "decimalLatitude"),
-    crs = 4326,
-    remove = FALSE
-  ) |>
-    st_transform(25833)
-  
-  coords <- st_coordinates(fish_with_id)
-  
-  
-  # Alle Punkte in einem 100Meter raster werden zu einer ID zusammengefasst und als Spalte dem dataframe hinzugefügt für das spätere mapping
-  fish_with_id$site_id <- dbscan(coords, eps = 100, minPts = 1)$cluster
-  
-  fish_with_id <- st_drop_geometry(fish_with_id)
-  
-  
-  
-  # Aggregieren der Daten nach Spezies, Jahr und Standort und berechnen der zusätzlichen Spalten
-  species_site_year <- fish_with_id |>
-    group_by(site_id, year, species) |>
+  species_site_year <- fish_reduced %>%
+    group_by(locality, year, species) %>%
     summarise(
-      Spezies_Count = sum(individualCount, na.rm = TRUE),
-      Longitude = mean(decimalLongitude, na.rm = TRUE),
-      Latitude  = mean(decimalLatitude,  na.rm = TRUE),
-      sampling_Ort = first(locality),
-      Bundesland = first(level1Name),
+      Spezies_Count = floor(mean(individualCount, na.rm = TRUE)),
+      n_days = n_distinct(eventDate),
+      Longitude = first(Longitude),
+      Latitude  = first(Latitude),
+      level1Name       = first(level1Name),
+      eventID          = first(eventID),
+      eventDate        = first(eventDate),
       .groups = "drop"
-    ) 
+    )
+  
   
   
   # Muss getrennt gemacht werden, da ich hier nicht nach Spezeis trennen möchte um den Gesamtcount zu erhalten
   all_site_year <- species_site_year |>
-    group_by(site_id, year) |>
+    group_by(locality, year) |>
     summarise(
       Gesamt_Individuen = sum(Spezies_Count),
       Gesamt_Spezies = n_distinct(species),
@@ -256,14 +218,16 @@ generate_fish_env_data <- function() {
   
   # Mergen und berechnen der fehlenden Spalte
   species_site_year <- species_site_year |>
-    left_join(all_site_year, by = c("site_id", "year")) |>
-    mutate(
-      Spezies_Anteil =
-        round(
-        (Spezies_Count / Gesamt_Individuen) * 100,
-        2
-        )
-    )
+    left_join(all_site_year, by = c("locality", "year")) |>
+    mutate(Spezies_Anteil =
+             round((Spezies_Count / Gesamt_Individuen) * 100, 2))
+  
+  
+  check_share <- species_site_year %>%
+    group_by(locality, year) %>%
+    summarise(sum_share = sum(Spezies_Anteil, na.rm = TRUE),
+              .groups = "drop")
+
   
   
   # WIP Hier können dann die Gewässerdaten hinzugefügt werden
@@ -271,16 +235,17 @@ generate_fish_env_data <- function() {
   
   
   df <- df %>%
-    select(-site_id...1, -Messstelle_Jahr) %>%
-    rename( Messstelle_ID = site_id...13,
-            `Ammonium [mg/L]`             = Ammonium,
-            `Gelöster Sauerstoff [mg/L]`  = `Dissolved oxygen`,
-            `Nitrat [mg/L]`               = Nitrate,
-            `Phosphat [mg/L]`             = Phosphate,
-            `Wassertemperatur [°C]`       = `Water temperature`,
-            `Gesamtphosphor [mg/L]`       = `Total phosphorus`,
-            `Distanz Messstelle [m]`      = water_dist_m
-           )
+    select(-Messstelle_Jahr) %>%
+    rename(
+      Messstelle_ID = locality,
+      `Ammonium [mg/L]`             = Ammonium,
+      `Gelöster Sauerstoff [mg/L]`  = `Dissolved oxygen`,
+      `Nitrat [mg/L]`               = Nitrate,
+      `Phosphat [mg/L]`             = Phosphate,
+      `Wassertemperatur [°C]`       = `Water temperature`,
+      `Gesamtphosphor [mg/L]`       = `Total phosphorus`,
+      `Distanz Messstelle [m]`      = water_dist_m
+    )
   
   out_dir  <- "result_data/gewässer"
   out_file <- file.path(out_dir, "Süßwasserfische.csv")
@@ -291,30 +256,24 @@ generate_fish_env_data <- function() {
   # Placeholder wegen codap zeilen limit
   #df <- df %>% slice_sample(n = 4900)
   
-  
+  df <- df %>%
+    filter(`Distanz Messstelle [m]` < 1500)
   
   write.csv(df, out_file, row.names = FALSE)
   #DataExplorer::create_report(df)
   
-  
-  water_vars <- c("Nitrate","Ammonium","Phosphate","Total phosphorus",
-                  "pH","Water temperature","Dissolved oxygen")
-  
-  plots <- lapply(water_vars, function(v) {
-    ggplot(df, aes(x = Gesamt_Spezies, y = .data[[v]])) +
-      geom_point(alpha = 0.4, position = position_jitter(width = 0.15, height = 0)) +
-      geom_smooth(method = "loess", se = FALSE) +
-      labs(y = v)
-  })
 
+  
+  
+  
   # Datensätze die man später evtl benutzen könnte
   
-  see_df <- fish_reduced %>%
-    filter(habitat == "See")
-  
-  
-  fliess_df <- fish_reduced %>%
-    filter(habitat == "Fliessgewaesser") 
+  # see_df <- fish_reduced %>%
+  #   filter(habitat == "See")
+  # 
+  # 
+  # fliess_df <- fish_reduced %>%
+  #   filter(habitat == "Fliessgewaesser")
   
   
   
